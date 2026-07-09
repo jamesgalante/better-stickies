@@ -712,7 +712,7 @@ struct RichEditor: NSViewRepresentable {
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticLinkDetectionEnabled = false
-        textView.textContainerInset = NSSize(width: 12, height: 6)
+        textView.textContainerInset = style.containerInset
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.textContainer?.widthTracksTextView = true
@@ -749,6 +749,10 @@ struct RichEditor: NSViewRepresentable {
         if context.coordinator.wraps != style.wrap {
             context.coordinator.wraps = style.wrap
             textView.setWraps(style.wrap)
+        }
+        if textView.textContainerInset != style.containerInset {
+            textView.textContainerInset = style.containerInset
+            textView.needsLayout = true
         }
         if context.coordinator.reloadToken != reloadToken {
             context.coordinator.reloadToken = reloadToken

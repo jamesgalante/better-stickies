@@ -24,6 +24,7 @@ enum StickyCommand {
     case toggleFit
     case align(String)
     case spacing(String)
+    case padding(String)
     case togglePin
     case saveCopy
 }
@@ -219,6 +220,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         post(.spacing(sender.representedObject as? String ?? "normal"))
     }
 
+    @objc func setPadding(_ sender: NSMenuItem) {
+        post(.padding(sender.representedObject as? String ?? "normal"))
+    }
+
     @objc func setTint(_ sender: NSMenuItem) {
         guard let hex = sender.representedObject as? String else { return }
         post(.tint(hex))
@@ -315,6 +320,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         case #selector(setSpacing(_:)):
             let spacing = current?.lineSpacing ?? "normal"
             menuItem.state = (menuItem.representedObject as? String) == spacing ? .on : .off
+        case #selector(setPadding(_:)):
+            let padding = current?.textPadding ?? "normal"
+            menuItem.state = (menuItem.representedObject as? String) == padding ? .on : .off
         case #selector(setGlassPreset(_:)):
             let strength = current?.tintStrength ?? 0.35
             let nearest = Self.glassPresets.min { abs($0.1 - strength) < abs($1.1 - strength) }?.1
@@ -474,6 +482,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         cornerItem.submenu = cornerMenu
         noteMenu.addItem(cornerItem)
+
+        let paddingItem = NSMenuItem(title: "Padding", action: nil, keyEquivalent: "")
+        let paddingMenu = NSMenu(title: "Padding")
+        for (title, key) in [("Compact", "compact"), ("Normal", "normal"), ("Comfy", "comfy")] {
+            let item = NSMenuItem(title: title, action: #selector(setPadding(_:)),
+                                  keyEquivalent: "")
+            item.representedObject = key
+            item.target = self
+            paddingMenu.addItem(item)
+        }
+        paddingItem.submenu = paddingMenu
+        noteMenu.addItem(paddingItem)
         noteMenu.addItem(.separator())
 
         let wrapItem = NSMenuItem(title: "Wrap Text", action: #selector(toggleWrap),

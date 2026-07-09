@@ -138,6 +138,7 @@ struct StickyContent: View {
         case .toggleWrap: note.wrapText.toggle()
         case .align(let value): note.textAlignment = value
         case .spacing(let value): note.lineSpacing = value
+        case .padding(let value): note.textPadding = value
         case .toggleFit:
             note.fitToText.toggle()
             if note.fitToText {

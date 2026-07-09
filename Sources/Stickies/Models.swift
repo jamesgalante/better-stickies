@@ -47,6 +47,8 @@ struct Appearance: Equatable {
     var alignment: String = "left"
     /// Line spacing preset: tight | normal | roomy.
     var spacing: String = "normal"
+    /// Text inset from the pane edges: compact | normal | comfy.
+    var padding: String = "normal"
 
     var nsTextAlignment: NSTextAlignment {
         switch alignment {
@@ -62,6 +64,15 @@ struct Appearance: Equatable {
         case "tight": (1, 0)
         case "roomy": (7, 5)
         default: (3, 2)
+        }
+    }
+
+    /// The text view's container inset for the padding preset.
+    var containerInset: NSSize {
+        switch padding {
+        case "compact": NSSize(width: 6, height: 2)
+        case "comfy": NSSize(width: 20, height: 12)
+        default: NSSize(width: 12, height: 6)
         }
     }
 
@@ -264,6 +275,8 @@ struct Note: Identifiable, Codable, Equatable {
     var textAlignment: String = "left"
     /// Line spacing preset: tight | normal | roomy.
     var lineSpacing: String = "normal"
+    /// Text inset from the pane edges: compact | normal | comfy.
+    var textPadding: String = "normal"
     /// Window height hugs the content (width stays user-controlled).
     var fitToText: Bool = false
     /// Stashed notes live in the library instead of on the desktop.
@@ -276,7 +289,8 @@ struct Note: Identifiable, Codable, Equatable {
     var appearance: Appearance {
         Appearance(tintHex: tintHex, strength: tintStrength, edgeHex: edgeHex,
                    fontKey: fontKey, textSize: textSize, cornerRadius: cornerRadius,
-                   wrap: wrapText, alignment: textAlignment, spacing: lineSpacing)
+                   wrap: wrapText, alignment: textAlignment, spacing: lineSpacing,
+                   padding: textPadding)
     }
 
     /// The first non-empty line stands in for a title (save filename, etc.).
@@ -329,7 +343,7 @@ extension Note {
     private enum CodingKeys: String, CodingKey {
         case id, version, tintHex, tintStrength, edgeHex, pinned, lines
         case fontKey, textSize, cornerRadius, wrapText, textAlignment, lineSpacing
-        case fitToText, stashed, collapsed, expandedHeight
+        case textPadding, fitToText, stashed, collapsed, expandedHeight
         case legacyTheme = "themeName"
         case legacyCustomTint = "customTintHex"
         case legacyTitle = "title"
@@ -355,6 +369,7 @@ extension Note {
         wrapText = try c.decodeIfPresent(Bool.self, forKey: .wrapText) ?? true
         textAlignment = try c.decodeIfPresent(String.self, forKey: .textAlignment) ?? "left"
         lineSpacing = try c.decodeIfPresent(String.self, forKey: .lineSpacing) ?? "normal"
+        textPadding = try c.decodeIfPresent(String.self, forKey: .textPadding) ?? "normal"
         fitToText = try c.decodeIfPresent(Bool.self, forKey: .fitToText) ?? false
         stashed = try c.decodeIfPresent(Bool.self, forKey: .stashed) ?? false
         collapsed = try c.decodeIfPresent(Bool.self, forKey: .collapsed) ?? false
@@ -431,6 +446,7 @@ extension Note {
         try c.encode(wrapText, forKey: .wrapText)
         try c.encode(textAlignment, forKey: .textAlignment)
         try c.encode(lineSpacing, forKey: .lineSpacing)
+        try c.encode(textPadding, forKey: .textPadding)
         try c.encode(fitToText, forKey: .fitToText)
         try c.encode(stashed, forKey: .stashed)
         try c.encode(collapsed, forKey: .collapsed)
