@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 // MARK: - Color helpers
 
@@ -473,9 +474,13 @@ final class NotesStore: ObservableObject {
     /// editors; the app delegate uses it to diff windows.
     @Published private(set) var externalReloadCount = 0
 
+    private static let log = Logger(subsystem: "com.jamesgalante.better-stickies",
+                                    category: "store")
+
     private let fileURL: URL
     private var pendingSave: DispatchWorkItem?
-    private var watcher: DispatchSourceFileSystemObject?
+    private var directoryWatcher: DispatchSourceFileSystemObject?
+    private var fileWatcher: DispatchSourceFileSystemObject?
     /// The bytes of our own last write (or initial read) — external events
     /// whose content matches are our own echoes and are ignored.
     private var lastWrittenData: Data?
@@ -503,7 +508,8 @@ final class NotesStore: ObservableObject {
     }
 
     deinit {
-        watcher?.cancel()
+        directoryWatcher?.cancel()
+        fileWatcher?.cancel()
     }
 
     @discardableResult
@@ -539,26 +545,71 @@ final class NotesStore: ObservableObject {
 
     // MARK: External edits — other tools may rewrite notes.json
 
-    /// Watch the DIRECTORY, not the file: atomic saves replace the file's
-    /// inode, which kills a file-level watcher after one event. The
-    /// directory descriptor survives any number of replacements.
+    /// Two watchers, because neither alone covers both write styles:
+    /// - The DIRECTORY watcher sees atomic replaces (temp file + rename is
+    ///   a directory-entry change) and the file being recreated — but an
+    ///   in-place truncate-and-write to the same inode never touches the
+    ///   directory and is invisible to it.
+    /// - The FILE watcher sees in-place writes — but an atomic replace
+    ///   swaps the inode out from under its descriptor, so it must re-arm
+    ///   onto the new file after every rename/delete.
     private func startWatching() {
+        watchDirectory()
+        watchFile()
+    }
+
+    private func watchDirectory() {
         let fd = open(fileURL.deletingLastPathComponent().path, O_EVTONLY)
         guard fd >= 0 else { return }
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd, eventMask: .write, queue: .main)
-        source.setEventHandler { [weak self] in self?.diskMayHaveChanged() }
+        source.setEventHandler { [weak self] in
+            self?.diskMayHaveChanged()
+            // The file may have just been (re)created — make sure the
+            // file-level watcher is attached to the current inode.
+            if let self, self.fileWatcher == nil { self.watchFile() }
+        }
         source.setCancelHandler { close(fd) }
         source.resume()
-        watcher = source
+        directoryWatcher = source
+    }
+
+    private func watchFile() {
+        let fd = open(fileURL.path, O_EVTONLY)
+        guard fd >= 0 else { return }   // absent file: directory watcher re-arms us
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd, eventMask: [.write, .extend, .rename, .delete],
+            queue: .main)
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
+            let events = self.fileWatcher?.data ?? []
+            self.diskMayHaveChanged()
+            if events.contains(.rename) || events.contains(.delete) {
+                // Inode replaced (atomic save) — chase the new file.
+                self.fileWatcher?.cancel()
+                self.fileWatcher = nil
+                self.watchFile()
+            }
+        }
+        source.setCancelHandler { close(fd) }
+        source.resume()
+        fileWatcher = source
     }
 
     private func diskMayHaveChanged() {
         // Unreadable/partial states resolve themselves: the completed write
-        // fires another directory event and we re-read then.
+        // fires another event and we re-read then.
         guard let data = try? Data(contentsOf: fileURL),
-              data != lastWrittenData,
-              let incoming = try? JSONDecoder().decode([Note].self, from: data) else { return }
+              data != lastWrittenData else { return }
+        let incoming: [Note]
+        do {
+            incoming = try JSONDecoder().decode([Note].self, from: data)
+        } catch {
+            // Don't clobber silently: the next local save will overwrite
+            // whatever is on disk, so leave a trace of what was rejected.
+            Self.log.error("ignoring undecodable external notes.json change: \(String(describing: error), privacy: .public)")
+            return
+        }
         lastWrittenData = data
         applyExternal(incoming)
     }

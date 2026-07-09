@@ -41,6 +41,31 @@ AppDelegate diffs windows open/closed, and `reloadToken` pushes new text into op
 editors. New `Note`/`Span` fields must `decodeIfPresent` with defaults (old files must
 keep decoding) and encode flags only when set; `Note` also carries a legacy v1 migration.
 
+The store watches **both the file and its directory** (fixed 2026-07-09 after the
+home-directory coordinator agent lost an in-place edit): the directory watcher catches
+atomic replaces and the file being recreated; the file watcher catches in-place
+truncate-and-write (invisible to directory watchers — same inode, no entry change) and
+re-arms onto the new inode after every rename/delete. Undecodable external writes are
+logged to os_log subsystem `com.jamesgalante.better-stickies` (category `store`) before
+being ignored — they'll be overwritten by the next local save, so the log is the only
+trace. If you touch `startWatching()`, re-verify all three paths against the running
+app: in-place write, atomic replace, and in-place-after-atomic (re-arm).
+
+### Contract for external tools writing `notes.json`
+
+Any agent that edits this file must:
+
+- **Prefer atomic writes** — temp file in the same directory, then `os.replace()`.
+  In-place writes are detected too, but atomic writes can never be read half-finished.
+- **Match notes by `id` (UUID), never by array position.** `applyExternal` merges
+  per-UUID. Index 0 is not stable once more than one note exists.
+- **Preserve unknown keys.** Round-trip the JSON (load → mutate → dump); don't
+  reconstruct a `Note` from scratch. `Note`/`Span` decode with `decodeIfPresent`
+  defaults, so dropping a field silently resets it.
+- **Not write to a note the user is actively editing.** `applyExternal` treats a note
+  with unsaved local edits as the winner (`hasLocalEdits ? local : external`), so the
+  external version is dropped — quietly.
+
 **Windows:** `AppDelegate.openWindow` per unstashed note. `WindowFactory` (Window.swift)
 builds a borderless `StickyWindow`; `WindowContext` is the SwiftUI↔AppKit bridge
 (close/stash, pin, collapse, fit-to-text height pinning via contentMin/MaxSize, glass
