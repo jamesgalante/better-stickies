@@ -138,14 +138,22 @@ final class SaturatingFrostView: NSVisualEffectView {
 
     private func tune(_ layer: CALayer) {
         if String(describing: type(of: layer)).contains("Backdrop") {
-            for filter in layer.filters ?? [] {
-                let obj = filter as AnyObject
-                let name = (obj.value(forKey: "name") as? String)?.lowercased() ?? ""
-                if name.contains("blur") { obj.setValue(blurRadius, forKey: "inputRadius") }
-                if name.contains("saturate") { obj.setValue(saturation, forKey: "inputAmount") }
+            // CRITICAL: never mutate attached filter objects. Core
+            // Animation diffs by object identity — mutating in place and
+            // reassigning the same array commits NO change, so the window
+            // server keeps rendering the OLD values while the app-side
+            // objects read back the new ones (an invisible client/server
+            // desync: blur looked 0 here, rendered 30 on screen). Copy
+            // each filter, set values on the copy, assign a fresh array.
+            if let filters = layer.filters, !filters.isEmpty {
+                layer.filters = filters.map { filter -> Any in
+                    guard let copy = (filter as? NSObject)?.copy() as? NSObject else { return filter }
+                    let name = (copy.value(forKey: "name") as? String)?.lowercased() ?? ""
+                    if name.contains("blur") { copy.setValue(blurRadius, forKey: "inputRadius") }
+                    if name.contains("saturate") { copy.setValue(saturation, forKey: "inputAmount") }
+                    return copy
+                }
             }
-            // Reassign so CA notices the mutated filter parameters.
-            layer.filters = layer.filters
             // Materials sample the backdrop at 1/8 resolution — invisible
             // under heavy blur, but a soft translucent smear at blur 0.
             // Sticky-sized panes can afford full-resolution sampling.
