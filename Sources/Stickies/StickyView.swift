@@ -32,7 +32,6 @@ struct StickyContent: View {
     @StateObject private var editor = EditorController()
     @State private var showLinkInput = false
     @State private var linkText = ""
-    @State private var windowHovered = false
     @State private var dropTargeted = false
     @FocusState private var linkFieldFocused: Bool
 
@@ -57,7 +56,6 @@ struct StickyContent: View {
         .clipShape(RoundedRectangle(cornerRadius: appearance.cornerRadius, style: .continuous))
         .overlay(edgeBorder)
         .environment(\.colorScheme, appearance.isDark ? .dark : .light)
-        .onHover { windowHovered = $0 }
         .onDrop(of: [.fileURL, .url, .plainText], isTargeted: $dropTargeted, perform: handleDrop)
         .onAppear {
             if note.collapsed {
@@ -209,27 +207,14 @@ struct StickyContent: View {
             ZStack(alignment: .top) {
                 DragStrip(onDoubleClick: toggleCollapse).frame(height: 26)
                 HStack(spacing: 8) {
-                    CloseDot(textColor: appearance.text, action: requestClose)
+                    CloseButton(textColor: appearance.text, action: requestClose)
                     Spacer()
-                    Button {
-                        note.pinned.toggle()
-                        windowContext.setPinned(note.pinned)
-                    } label: {
-                        Image(systemName: note.pinned ? "pin.fill" : "pin")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(note.pinned ? appearance.accent
-                                                         : appearance.text.opacity(0.55))
-                    }
-                    .buttonStyle(.plain)
-                    .opacity(windowHovered || note.pinned ? 1 : 0)
-                    .help(note.pinned ? "Unpin" : "Float on top")
                 }
                 .padding(.horizontal, 11)
                 .padding(.top, 9)
             }
             Spacer()
         }
-        .animation(.easeOut(duration: 0.15), value: windowHovered)
     }
 
     // MARK: Link input (⌘K)
@@ -343,25 +328,20 @@ struct StickyContent: View {
     }
 }
 
-// MARK: - Close dot
+// MARK: - Close button: a bare ×
 
-struct CloseDot: View {
+struct CloseButton: View {
     let textColor: Color
     let action: () -> Void
     @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(hovering ? Color(hex: "FF5F57") : textColor.opacity(0.18))
-                if hovering {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 7, weight: .heavy))
-                        .foregroundStyle(.black.opacity(0.55))
-                }
-            }
-            .frame(width: 13, height: 13)
+            Image(systemName: "xmark")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(textColor.opacity(hovering ? 0.9 : 0.35))
+                .frame(width: 16, height: 16)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
