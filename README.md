@@ -16,6 +16,15 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
 </p>
 
+<p align="center">
+  <img src="docs/hero.png" width="640" alt="A clear glass sticky note with a checklist, highlight, and link, floating over a blue desktop">
+</p>
+
+<p align="center">
+  <img src="docs/quote.png" width="49%" alt="A dark frosted note with a gold edge, centered serif quote">
+  <img src="docs/groceries.png" width="49%" alt="A saturated pill-cornered note over a coastal wallpaper">
+</p>
+
 ---
 
 ## Why
