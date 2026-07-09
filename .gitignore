@@ -3,3 +3,4 @@ Better Stickies.app/
 .DS_Store
 .claude/settings.local.json
 Resources/AppIcon.iconset/
+dist/
