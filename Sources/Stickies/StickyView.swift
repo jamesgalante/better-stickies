@@ -45,6 +45,7 @@ struct StickyContent: View {
             RichEditor(controller: editor, initialLines: note.lines, style: appearance,
                        reloadToken: reloadToken) { lines in
                 note.lines = lines
+                applyFit()
             }
             .padding(.top, 30)
             .padding(.bottom, 6)
@@ -61,7 +62,14 @@ struct StickyContent: View {
         .onAppear {
             if note.collapsed {
                 windowContext.setCollapsed(true, height: collapsedHeight)
+            } else {
+                applyFit()
             }
+        }
+        .onChange(of: appearance) { applyFit() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)) { notification in
+            guard (notification.object as? NSWindow) === windowContext.window else { return }
+            applyFit()
         }
         .onReceive(NotificationCenter.default.publisher(for: .stickyCloseRequested)) { _ in
             if windowContext.isKey { requestClose() }
@@ -128,6 +136,13 @@ struct StickyContent: View {
         case .glass(let value): note.tintStrength = value
         case .corner(let value): note.cornerRadius = value
         case .toggleWrap: note.wrapText.toggle()
+        case .toggleFit:
+            note.fitToText.toggle()
+            if note.fitToText {
+                applyFit()
+            } else {
+                windowContext.clearFit()
+            }
         case .togglePin:
             note.pinned.toggle()
             windowContext.setPinned(note.pinned)
@@ -141,10 +156,18 @@ struct StickyContent: View {
 
     private var collapsedHeight: CGFloat { 30 }
 
+    /// Fit-to-text: window height hugs the content (36 = the editor's
+    /// 30pt top + 6pt bottom padding).
+    private func applyFit() {
+        guard note.fitToText, !note.collapsed else { return }
+        windowContext.setFitHeight(editor.contentHeight + 36)
+    }
+
     private func toggleCollapse() {
         if note.collapsed {
             note.collapsed = false
             windowContext.setCollapsed(false, height: CGFloat(note.expandedHeight ?? 400))
+            applyFit()
         } else {
             note.expandedHeight = Double(windowContext.window?.frame.height ?? 400)
             note.collapsed = true

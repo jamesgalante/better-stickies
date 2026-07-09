@@ -56,6 +56,15 @@ final class EditorController: ObservableObject {
     func applyTextColor(_ hex: String?) { textView?.applyRunValue(hex, for: .stickyColor) }
     func applyHighlight(_ hex: String?) { textView?.applyRunValue(hex, for: .stickyHighlight) }
     var hasSelection: Bool { (textView?.selectedRange().length ?? 0) > 0 }
+
+    /// The text's natural laid-out height, for fit-to-text windows.
+    var contentHeight: CGFloat {
+        guard let textView, let layoutManager = textView.layoutManager,
+              let container = textView.textContainer else { return 120 }
+        layoutManager.ensureLayout(for: container)
+        return layoutManager.usedRect(for: container).height
+            + textView.textContainerInset.height * 2
+    }
 }
 
 // MARK: - Text view

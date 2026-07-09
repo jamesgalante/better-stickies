@@ -21,6 +21,7 @@ enum StickyCommand {
     case glass(Double)
     case corner(Double)
     case toggleWrap
+    case toggleFit
     case togglePin
     case saveCopy
 }
@@ -194,6 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func smallerText() { post(.bumpSize(-1)) }
     @objc func toggleFloat() { post(.togglePin) }
     @objc func toggleWrap() { post(.toggleWrap) }
+    @objc func toggleFit() { post(.toggleFit) }
 
     @objc func setFont(_ sender: NSMenuItem) {
         post(.setFont(sender.representedObject as? String ?? "rounded"))
@@ -295,6 +297,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             menuItem.state = current?.pinned == true ? .on : .off
         case #selector(toggleWrap):
             menuItem.state = current?.wrapText != false ? .on : .off
+        case #selector(toggleFit):
+            menuItem.state = current?.fitToText == true ? .on : .off
         case #selector(setGlassPreset(_:)):
             let strength = current?.tintStrength ?? 0.35
             let nearest = Self.glassPresets.min { abs($0.1 - strength) < abs($1.1 - strength) }?.1
@@ -460,6 +464,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                                   keyEquivalent: "")
         wrapItem.target = self
         noteMenu.addItem(wrapItem)
+        let fitItem = NSMenuItem(title: "Fit to Text", action: #selector(toggleFit),
+                                 keyEquivalent: "")
+        fitItem.target = self
+        noteMenu.addItem(fitItem)
         let floatItem = NSMenuItem(title: "Float on Top", action: #selector(toggleFloat),
                                    keyEquivalent: "f")
         floatItem.keyEquivalentModifierMask = [.command, .shift]

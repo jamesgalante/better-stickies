@@ -237,6 +237,8 @@ struct Note: Identifiable, Codable, Equatable {
     var cornerRadius: Double = 16
     /// Wrap long lines (true) or scroll horizontally (false).
     var wrapText: Bool = true
+    /// Window height hugs the content (width stays user-controlled).
+    var fitToText: Bool = false
     /// Stashed notes live in the library instead of on the desktop.
     var stashed: Bool = false
     /// Rolled up to just the title line; expandedHeight restores the window.
@@ -299,7 +301,8 @@ struct Note: Identifiable, Codable, Equatable {
 extension Note {
     private enum CodingKeys: String, CodingKey {
         case id, version, tintHex, tintStrength, edgeHex, pinned, lines
-        case fontKey, textSize, cornerRadius, wrapText, stashed, collapsed, expandedHeight
+        case fontKey, textSize, cornerRadius, wrapText, fitToText
+        case stashed, collapsed, expandedHeight
         case legacyTheme = "themeName"
         case legacyCustomTint = "customTintHex"
         case legacyTitle = "title"
@@ -323,6 +326,7 @@ extension Note {
         textSize = try c.decodeIfPresent(Double.self, forKey: .textSize) ?? 13
         cornerRadius = try c.decodeIfPresent(Double.self, forKey: .cornerRadius) ?? 16
         wrapText = try c.decodeIfPresent(Bool.self, forKey: .wrapText) ?? true
+        fitToText = try c.decodeIfPresent(Bool.self, forKey: .fitToText) ?? false
         stashed = try c.decodeIfPresent(Bool.self, forKey: .stashed) ?? false
         collapsed = try c.decodeIfPresent(Bool.self, forKey: .collapsed) ?? false
         expandedHeight = try c.decodeIfPresent(Double.self, forKey: .expandedHeight)
@@ -396,6 +400,7 @@ extension Note {
         try c.encode(textSize, forKey: .textSize)
         try c.encode(cornerRadius, forKey: .cornerRadius)
         try c.encode(wrapText, forKey: .wrapText)
+        try c.encode(fitToText, forKey: .fitToText)
         try c.encode(stashed, forKey: .stashed)
         try c.encode(collapsed, forKey: .collapsed)
         try c.encodeIfPresent(expandedHeight, forKey: .expandedHeight)

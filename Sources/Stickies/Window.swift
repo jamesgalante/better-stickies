@@ -259,6 +259,32 @@ final class WindowContext: ObservableObject {
         window?.level = pinned ? .floating : .normal
     }
 
+    /// Fit-to-text: pin the window height to the content's natural height
+    /// (top edge fixed, growing downward). Width stays free — min/max
+    /// clamp only the vertical axis, so edge-drags resize width and the
+    /// reflowed height re-pins live.
+    func setFitHeight(_ height: CGFloat) {
+        guard let window else { return }
+        let cap = window.screen?.visibleFrame.height ?? 1000
+        let clamped = min(max(height, 60), cap)
+        let unbounded = CGFloat.greatestFiniteMagnitude
+        window.contentMinSize = NSSize(width: 150, height: clamped)
+        window.contentMaxSize = NSSize(width: unbounded, height: clamped)
+        var frame = window.frame
+        guard abs(frame.height - clamped) > 0.5 else { return }
+        frame.origin.y += frame.height - clamped
+        frame.size.height = clamped
+        window.setFrame(frame, display: true)
+    }
+
+    /// Back to free-form sizing.
+    func clearFit() {
+        guard let window else { return }
+        let unbounded = CGFloat.greatestFiniteMagnitude
+        window.contentMinSize = NSSize(width: 150, height: 120)
+        window.contentMaxSize = NSSize(width: unbounded, height: unbounded)
+    }
+
     /// Rolls the window up to the title line (keeping the top edge fixed)
     /// or restores it to the given height. Min/max sizes pin the height
     /// while collapsed so edge-resizing only changes the width.
