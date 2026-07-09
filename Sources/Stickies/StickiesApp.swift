@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import Carbon.HIToolbox
 
 extension Notification.Name {
     /// Posted by the ⌘W menu item; the key sticky runs its close flow.
@@ -65,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     ]
     private var libraryWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
+    private var summonHotKey: GlobalHotKey?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -85,7 +87,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             .sink { [weak self] _ in self?.syncWindowsWithStore() }
             .store(in: &cancellables)
 
+        // ⌥⌘S anywhere: summon the stickies over whatever you're doing;
+        // press again to tuck them back away.
+        summonHotKey = GlobalHotKey(keyCode: UInt32(kVK_ANSI_S),
+                                    modifiers: UInt32(cmdKey | optionKey)) { [weak self] in
+            self?.toggleSummon()
+        }
+
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func toggleSummon() {
+        if NSApp.isActive {
+            NSApp.hide(nil)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            if windows.isEmpty {
+                showLibrary()
+            }
+        }
     }
 
     /// Reconcile open windows with the store after an external reload.

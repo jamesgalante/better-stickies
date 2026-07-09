@@ -82,6 +82,7 @@ frosted-blur fallback.
 
 | | |
 |---|---|
+| <kbd>⌥⌘S</kbd> | **Summon / tuck away** — works globally, from any app |
 | <kbd>⌘N</kbd> | New sticky |
 | <kbd>⌘W</kbd> | Close (stashes to the Library) |
 | <kbd>⌘⇧L</kbd> | Library |
