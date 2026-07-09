@@ -1,63 +1,104 @@
-# Better Stickies
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Better Stickies icon">
+</p>
 
-Desktop sticky notes for macOS, rebuilt around **Liquid Glass**: notes are
-clear refractive panes that saturate and blur the desktop behind them —
-from fully transparent glass to a solid color, one slider.
+<h1 align="center">Better Stickies</h1>
+
+<p align="center">
+  <b>Sticky notes made of Liquid Glass.</b><br>
+  Clear, refractive notes that float on your desktop — from crystal glass to solid color, one setting at a time.
+</p>
+
+<p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/jamesgalante/better-stickies?label=download&color=6FB6FF" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS-26%2B-blue" alt="macOS 26+">
+  <img src="https://img.shields.io/badge/Swift-SwiftUI%20%2B%20AppKit-F05138" alt="Swift">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
+</p>
+
+---
+
+## Why
+
+macOS Stickies hasn't changed since the '90s. Better Stickies rebuilds the idea around
+macOS 26's Liquid Glass: notes are real glass panes that refract and saturate whatever
+is behind them, with a modern editor inside and a design that stays out of your way —
+a note is just a close dot, a pin, and your text.
 
 ## Features
 
-- **Real Liquid Glass** notes (macOS 26) — clear glass with edge
-  refraction over a saturating backdrop; a Glass slider runs from
-  crystal-clear to frosted to opaque
-- **Rich text**: bold / italic / underline / strikethrough, text colors,
-  highlighter, four typefaces, per-note text size — all from the menu bar
-- **Markdown-ish typing**: `- ` becomes a bullet, `[] ` becomes a
-  checkbox, `**bold**` and `*italic*` convert as you type
-- **Checklists** with clickable checkboxes (⌘L)
-- **Links** to websites, files, and folders (⌘K, or drag & drop)
-- **Collapse**: double-click a note's top edge to roll it up to a slim
-  glass bar
-- **Stash & Library**: closing a note stashes it instead of deleting;
-  browse and search everything with ⌘⇧L
-- **Float on top**, per-note colors and glowing edge colors
-- Notes live in a plain JSON file (`~/Library/Application
-  Support/BetterStickies/notes.json`) that external tools can safely
-  read *and write* — the app watches the file and merges outside edits
-  live
+- **Liquid Glass panes** — genuinely clear glass with edge refraction over a
+  color-saturating backdrop. Eight glass levels, from crystal to fully opaque.
+- **Rich text** — bold, italic, underline, strikethrough, ink colors, highlighter,
+  four typefaces, per-note text size.
+- **Markdown shorthands** — `- ` becomes a bullet, `[] ` a checkbox, `**bold**` and
+  `*italic*` convert as you type. Nothing auto-continues; you stay in control.
+- **Checklists & links** — clickable checkboxes; link selections to websites, files,
+  or folders; drag & drop URLs and files straight onto a note.
+- **Shape & layout** — corner radius, padding, alignment, and line spacing per note;
+  wrap text or scroll it horizontally; fit-to-text height that grows as you type.
+- **Collapse** — double-click the top edge and a note rolls up to a slim glass bar.
+- **Stash & Library** — closing a note never deletes it; browse and search everything
+  with <kbd>⌘⇧L</kbd> and pull notes back onto the desktop.
+- **Float on top** — pin a note above every window.
+- **Automation-friendly storage** — notes live in one plain JSON file. External tools
+  (scripts, agents) can read *and write* it while the app runs; changes are watched
+  and merged live without clobbering your edits.
 
 ## Install
 
-Download the latest zip from
-[Releases](../../releases), unzip, and drag **Better Stickies.app** to
-`/Applications`.
+1. Download the latest zip from [Releases](../../releases/latest).
+2. Unzip and drag **Better Stickies.app** into `/Applications`.
+3. First launch: right-click the app → **Open** → **Open**
+   *(the app isn't notarized — no Apple Developer program behind it)*, or:
 
-The app is not code-signed (no Apple Developer membership), so macOS
-will refuse to open it at first. Either right-click the app → **Open** →
-**Open**, or run:
+   ```sh
+   xattr -dr com.apple.quarantine "/Applications/Better Stickies.app"
+   ```
 
-```sh
-xattr -dr com.apple.quarantine "/Applications/Better Stickies.app"
-```
+Requires **macOS 26** for the full Liquid Glass rendering; earlier versions get a
+frosted-blur fallback.
 
-Requires **macOS 26** for the Liquid Glass look (earlier macOS falls back
-to a frosted-blur pane).
+## Keyboard shortcuts
+
+| | |
+|---|---|
+| <kbd>⌘N</kbd> | New sticky |
+| <kbd>⌘W</kbd> | Close (stashes to the Library) |
+| <kbd>⌘⇧L</kbd> | Library |
+| <kbd>⌘S</kbd> | Save a copy as Markdown |
+| <kbd>⌘B</kbd> / <kbd>⌘I</kbd> / <kbd>⌘U</kbd> / <kbd>⌘⇧X</kbd> | Bold / italic / underline / strikethrough |
+| <kbd>⌘L</kbd> | Checklist line |
+| <kbd>⌘K</kbd> | Add link |
+| <kbd>⌘+</kbd> / <kbd>⌘−</kbd> | Bigger / smaller text |
+| <kbd>⌘{</kbd> / <kbd>⌘\|</kbd> / <kbd>⌘}</kbd> | Align left / center / right |
+| <kbd>⌘⇧F</kbd> | Float on top |
+
+Everything else lives in the **Note** and **Format** menus.
 
 ## Build from source
 
-Requires Xcode 26 (the app links `NSGlassEffectView`, which needs the
-macOS 26 SDK — the build script pins `DEVELOPER_DIR` accordingly).
+Requires Xcode 26 — the app links `NSGlassEffectView`, which needs the macOS 26 SDK
+(the build script pins `DEVELOPER_DIR` accordingly).
 
 ```sh
-Scripts/make_app.sh      # builds and installs to /Applications
-Scripts/make_release.sh  # builds and packages dist/Better-Stickies-*.zip
+git clone https://github.com/jamesgalante/better-stickies.git
+cd better-stickies
+Scripts/make_app.sh        # build + install to /Applications
+Scripts/make_release.sh    # build + package dist/Better-Stickies-*.zip
 ```
 
-## Notes on the glass
+## How the glass works
 
-There is no public API for most of what the glass does here. The panes
-are built from `NSGlassEffectView` + a rewritten `NSVisualEffectView`
-backdrop (fog washes hidden, saturation boosted, full-resolution
-sampling), with a handful of carefully-commented private-API overrides
-to keep the glass lively when windows lose focus. See
-`Sources/Stickies/Window.swift` — every override documents the symptom
-it fixes and fails safe if a future macOS renames things.
+There is no public API for most of what these notes do. Each pane is an
+`NSGlassEffectView` (clear style) over a rewritten `NSVisualEffectView` backdrop —
+fog washes hidden, saturation boosted, sampling forced to full resolution — plus a
+handful of carefully documented private-API overrides that keep the glass lively when
+windows lose focus. Every override in
+[`Window.swift`](Sources/Stickies/Window.swift) states the symptom it fixes and fails
+safe: if a future macOS renames the internals, notes fade to standard materials
+instead of breaking.
+
+## License
+
+[MIT](LICENSE)
