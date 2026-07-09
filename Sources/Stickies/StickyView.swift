@@ -127,6 +127,7 @@ struct StickyContent: View {
         case .edge(let hex): note.edgeHex = hex
         case .glass(let value): note.tintStrength = value
         case .corner(let value): note.cornerRadius = value
+        case .toggleWrap: note.wrapText.toggle()
         case .togglePin:
             note.pinned.toggle()
             windowContext.setPinned(note.pinned)

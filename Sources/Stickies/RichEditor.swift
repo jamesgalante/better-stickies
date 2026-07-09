@@ -321,6 +321,31 @@ final class StickyTextView: NSTextView {
         layoutManager?.invalidateDisplay(forCharacterRange: full)
     }
 
+    // MARK: Wrap vs horizontal scroll
+
+    /// Wrap: lines break at the note's width (the default). No-wrap: lines
+    /// run right and the note scrolls horizontally.
+    func setWraps(_ wraps: Bool) {
+        guard let container = textContainer, let scroll = enclosingScrollView else { return }
+        let huge = CGFloat.greatestFiniteMagnitude
+        if wraps {
+            container.widthTracksTextView = true
+            isHorizontallyResizable = false
+            autoresizingMask = [.width]
+            let width = scroll.contentSize.width
+            container.size = NSSize(width: width, height: huge)
+            setFrameSize(NSSize(width: width, height: frame.height))
+        } else {
+            container.widthTracksTextView = false
+            isHorizontallyResizable = true
+            autoresizingMask = []
+            maxSize = NSSize(width: huge, height: huge)
+            container.size = NSSize(width: huge, height: huge)
+        }
+        layoutManager?.ensureLayout(for: container)
+        scrollRangeToVisible(selectedRange())
+    }
+
     // MARK: Inline styling
 
     /// ⌘B / ⌘I / ⌘U / ⇧⌘X — a bare AppKit app has no Font menu to route
@@ -653,6 +678,8 @@ struct RichEditor: NSViewRepresentable {
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
         scroll.verticalScroller?.alphaValue = 0
+        scroll.hasHorizontalScroller = true
+        scroll.horizontalScroller?.alphaValue = 0
         scroll.autohidesScrollers = true
         // macOS 26 draws a prominent square focus ring around the scroll
         // view when the text view is first responder — ugly against the
@@ -691,6 +718,10 @@ struct RichEditor: NSViewRepresentable {
         controller.textView = textView
         context.coordinator.textView = textView
         context.coordinator.reloadToken = reloadToken
+        context.coordinator.wraps = style.wrap
+        if !style.wrap {
+            textView.setWraps(false)
+        }
 
         DispatchQueue.main.async {
             textView.window?.makeFirstResponder(textView)
@@ -703,6 +734,10 @@ struct RichEditor: NSViewRepresentable {
         if textView.style.textStyleDiffers(from: style) {
             textView.style = style
             textView.restyle()
+        }
+        if context.coordinator.wraps != style.wrap {
+            context.coordinator.wraps = style.wrap
+            textView.setWraps(style.wrap)
         }
         if context.coordinator.reloadToken != reloadToken {
             context.coordinator.reloadToken = reloadToken
@@ -722,6 +757,7 @@ struct RichEditor: NSViewRepresentable {
         let onChange: ([Line]) -> Void
         weak var textView: StickyTextView?
         var reloadToken = 0
+        var wraps = true
 
         init(onChange: @escaping ([Line]) -> Void) {
             self.onChange = onChange

@@ -41,6 +41,8 @@ struct Appearance: Equatable {
     var fontKey: String = "rounded"   // rounded | serif | mono | hand
     var textSize: Double = 13
     var cornerRadius: Double = 16
+    /// false = long lines don't wrap; the note scrolls horizontally.
+    var wrap: Bool = true
 
     var tint: Color { Color(hex: tintHex) }
     var isDark: Bool { Color.luminance(hex: tintHex) < 0.5 }
@@ -233,6 +235,8 @@ struct Note: Identifiable, Codable, Equatable {
     var textSize: Double = 13
     /// Pane corner rounding, in points.
     var cornerRadius: Double = 16
+    /// Wrap long lines (true) or scroll horizontally (false).
+    var wrapText: Bool = true
     /// Stashed notes live in the library instead of on the desktop.
     var stashed: Bool = false
     /// Rolled up to just the title line; expandedHeight restores the window.
@@ -242,7 +246,8 @@ struct Note: Identifiable, Codable, Equatable {
 
     var appearance: Appearance {
         Appearance(tintHex: tintHex, strength: tintStrength, edgeHex: edgeHex,
-                   fontKey: fontKey, textSize: textSize, cornerRadius: cornerRadius)
+                   fontKey: fontKey, textSize: textSize, cornerRadius: cornerRadius,
+                   wrap: wrapText)
     }
 
     /// The first non-empty line stands in for a title (save filename, etc.).
@@ -294,7 +299,7 @@ struct Note: Identifiable, Codable, Equatable {
 extension Note {
     private enum CodingKeys: String, CodingKey {
         case id, version, tintHex, tintStrength, edgeHex, pinned, lines
-        case fontKey, textSize, cornerRadius, stashed, collapsed, expandedHeight
+        case fontKey, textSize, cornerRadius, wrapText, stashed, collapsed, expandedHeight
         case legacyTheme = "themeName"
         case legacyCustomTint = "customTintHex"
         case legacyTitle = "title"
@@ -317,6 +322,7 @@ extension Note {
         fontKey = try c.decodeIfPresent(String.self, forKey: .fontKey) ?? "rounded"
         textSize = try c.decodeIfPresent(Double.self, forKey: .textSize) ?? 13
         cornerRadius = try c.decodeIfPresent(Double.self, forKey: .cornerRadius) ?? 16
+        wrapText = try c.decodeIfPresent(Bool.self, forKey: .wrapText) ?? true
         stashed = try c.decodeIfPresent(Bool.self, forKey: .stashed) ?? false
         collapsed = try c.decodeIfPresent(Bool.self, forKey: .collapsed) ?? false
         expandedHeight = try c.decodeIfPresent(Double.self, forKey: .expandedHeight)
@@ -389,6 +395,7 @@ extension Note {
         try c.encode(fontKey, forKey: .fontKey)
         try c.encode(textSize, forKey: .textSize)
         try c.encode(cornerRadius, forKey: .cornerRadius)
+        try c.encode(wrapText, forKey: .wrapText)
         try c.encode(stashed, forKey: .stashed)
         try c.encode(collapsed, forKey: .collapsed)
         try c.encodeIfPresent(expandedHeight, forKey: .expandedHeight)
