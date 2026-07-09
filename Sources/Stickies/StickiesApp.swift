@@ -46,7 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// on-open, and Auto Layout — all mangle on the second hover), so:
     /// plain preset items, which cannot break.
     private static let glassPresets: [(String, Double)] = [
-        ("Clear", 0), ("Light", 0.25), ("Frosted", 0.5), ("Heavy", 0.75), ("Solid", 1.0),
+        ("Clear", 0), ("15%", 0.15), ("30%", 0.3), ("45%", 0.45),
+        ("60%", 0.6), ("75%", 0.75), ("90%", 0.9), ("Solid", 1.0),
     ]
     private static let cornerPresets: [(String, Double)] = [
         ("Sharp", 4), ("Soft", 10), ("Round", 16), ("Extra Round", 22), ("Pill", 28),
