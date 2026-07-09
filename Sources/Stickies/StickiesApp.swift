@@ -41,10 +41,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     private let store = NotesStore()
     private var windows: [UUID: NSWindow] = [:]
     private var cascadePoint = NSPoint.zero
-    /// The Glass and Corners sliders hosted inside the Note menu; synced
-    /// on menu open.
-    private weak var glassSlider: NSSlider?
-    private weak var cornerSlider: NSSlider?
+    /// The Note-menu items hosting the Glass and Corners sliders. Their
+    /// views are rebuilt on every menu open — NSMenu re-hosts custom item
+    /// views across open/close cycles and stale layouts render garbled.
+    private weak var glassSliderItem: NSMenuItem?
+    private weak var cornerSliderItem: NSMenuItem?
     private var libraryWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -291,10 +292,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     func menuWillOpen(_ menu: NSMenu) {
         guard menu.title == "Note" else { return }
         let note = keyNote()
-        glassSlider?.doubleValue = note?.tintStrength ?? 0.35
-        glassSlider?.isEnabled = note != nil
-        cornerSlider?.doubleValue = note?.cornerRadius ?? 16
-        cornerSlider?.isEnabled = note != nil
+        glassSliderItem?.view = makeSliderView(
+            label: "Glass", min: 0, max: 1,
+            value: note?.tintStrength ?? 0.35, enabled: note != nil,
+            action: #selector(glassChanged(_:)))
+        cornerSliderItem?.view = makeSliderView(
+            label: "Corners", min: 4, max: 28,
+            value: note?.cornerRadius ?? 16, enabled: note != nil,
+            action: #selector(cornerChanged(_:)))
     }
 
     private func openWindow(for note: Note, cascade: Bool) {
@@ -420,13 +425,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         noteMenu.addItem(edgeItem)
 
         noteMenu.addItem(.separator())
-        let (glassItem, glassSliderControl) = makeSliderItem(
-            label: "Glass", min: 0, max: 1, initial: 0.35, action: #selector(glassChanged(_:)))
-        glassSlider = glassSliderControl
+        let glassItem = NSMenuItem()
+        glassItem.view = makeSliderView(label: "Glass", min: 0, max: 1, value: 0.35,
+                                        enabled: true, action: #selector(glassChanged(_:)))
+        glassSliderItem = glassItem
         noteMenu.addItem(glassItem)
-        let (cornerItem, cornerSliderControl) = makeSliderItem(
-            label: "Corners", min: 4, max: 28, initial: 16, action: #selector(cornerChanged(_:)))
-        cornerSlider = cornerSliderControl
+        let cornerItem = NSMenuItem()
+        cornerItem.view = makeSliderView(label: "Corners", min: 4, max: 28, value: 16,
+                                         enabled: true, action: #selector(cornerChanged(_:)))
+        cornerSliderItem = cornerItem
         noteMenu.addItem(cornerItem)
         noteMenu.addItem(.separator())
 
@@ -536,25 +543,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         }
     }
 
-    /// A live slider hosted directly in the Note menu, like the volume
-    /// slider in the sound menu.
-    private func makeSliderItem(label: String, min: Double, max: Double, initial: Double,
-                                action: Selector) -> (NSMenuItem, NSSlider) {
+    /// A live slider row for the Note menu, like the volume slider in the
+    /// sound menu. Built fresh per menu open; the label sizes to fit.
+    private func makeSliderView(label: String, min: Double, max: Double, value: Double,
+                                enabled: Bool, action: Selector) -> NSView {
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 26))
         let labelField = NSTextField(labelWithString: label)
         labelField.font = .menuFont(ofSize: 13)
-        labelField.frame = NSRect(x: 21, y: 5, width: 48, height: 17)
+        labelField.sizeToFit()
+        labelField.setFrameOrigin(NSPoint(x: 21, y: (26 - labelField.frame.height) / 2))
         container.addSubview(labelField)
 
-        let slider = NSSlider(value: initial, minValue: min, maxValue: max,
+        let slider = NSSlider(value: value, minValue: min, maxValue: max,
                               target: self, action: action)
         slider.isContinuous = true
         slider.controlSize = .small
-        slider.frame = NSRect(x: 72, y: 4, width: 150, height: 18)
+        slider.isEnabled = enabled
+        slider.frame = NSRect(x: 82, y: 4, width: 140, height: 18)
         container.addSubview(slider)
-
-        let item = NSMenuItem()
-        item.view = container
-        return (item, slider)
+        return container
     }
 }
