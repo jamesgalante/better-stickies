@@ -136,6 +136,7 @@ struct StickyContent: View {
         case .glass(let value): note.tintStrength = value
         case .corner(let value): note.cornerRadius = value
         case .toggleWrap: note.wrapText.toggle()
+        case .align(let value): note.textAlignment = value
         case .toggleFit:
             note.fitToText.toggle()
             if note.fitToText {

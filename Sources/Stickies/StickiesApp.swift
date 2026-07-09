@@ -22,6 +22,7 @@ enum StickyCommand {
     case corner(Double)
     case toggleWrap
     case toggleFit
+    case align(String)
     case togglePin
     case saveCopy
 }
@@ -209,6 +210,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         post(.mark(sender.representedObject as? String))
     }
 
+    @objc func setAlignment(_ sender: NSMenuItem) {
+        post(.align(sender.representedObject as? String ?? "left"))
+    }
+
     @objc func setTint(_ sender: NSMenuItem) {
         guard let hex = sender.representedObject as? String else { return }
         post(.tint(hex))
@@ -299,6 +304,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             menuItem.state = current?.wrapText != false ? .on : .off
         case #selector(toggleFit):
             menuItem.state = current?.fitToText == true ? .on : .off
+        case #selector(setAlignment(_:)):
+            let alignment = current?.textAlignment ?? "left"
+            menuItem.state = (menuItem.representedObject as? String) == alignment ? .on : .off
         case #selector(setGlassPreset(_:)):
             let strength = current?.tintStrength ?? 0.35
             let nearest = Self.glassPresets.min { abs($0.1 - strength) < abs($1.1 - strength) }?.1
@@ -507,6 +515,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         formatMenu.addItem(fontItem)
         formatMenu.addItem(command("Bigger Text", #selector(biggerText), "+"))
         formatMenu.addItem(command("Smaller Text", #selector(smallerText), "-"))
+        formatMenu.addItem(.separator())
+
+        for (title, key, equivalent) in [("Align Left", "left", "{"),
+                                         ("Center", "center", "|"),
+                                         ("Align Right", "right", "}")] {
+            let item = NSMenuItem(title: title, action: #selector(setAlignment(_:)),
+                                  keyEquivalent: equivalent)
+            item.representedObject = key
+            item.target = self
+            formatMenu.addItem(item)
+        }
         formatMenu.addItem(.separator())
 
         let inkItem = NSMenuItem(title: "Text Color", action: nil, keyEquivalent: "")

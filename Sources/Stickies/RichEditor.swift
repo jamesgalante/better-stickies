@@ -316,6 +316,7 @@ final class StickyTextView: NSTextView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = 3
         paragraph.paragraphSpacing = 2
+        paragraph.alignment = style.nsTextAlignment
         storage.addAttribute(.paragraphStyle, value: paragraph, range: full)
 
         storage.endEditing()
