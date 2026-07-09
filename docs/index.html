@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Better Stickies — Sticky notes made of Liquid Glass</title>
+<meta name="description" content="Desktop sticky notes for macOS, rebuilt around Liquid Glass. Clear, refractive notes with rich text, checklists, and a searchable library.">
+<meta property="og:title" content="Better Stickies">
+<meta property="og:description" content="Sticky notes made of Liquid Glass. Free and open source, for macOS 26.">
+<meta property="og:image" content="https://jamesgalante.github.io/better-stickies/hero.png">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --text: #e8eaf0;
+    --text-2: #a2abbd;
+    --text-3: #6b7487;
+    --accent: #6fb6ff;
+    --glass: rgba(255, 255, 255, 0.055);
+    --glass-strong: rgba(255, 255, 255, 0.09);
+    --line: rgba(255, 255, 255, 0.11);
+    --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* The desktop behind the glass: fixed, soft color fields. */
+  .backdrop {
+    position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(42% 38% at 12% 8%,  rgba(111, 182, 255, 0.20), transparent 70%),
+      radial-gradient(45% 40% at 88% 12%, rgba(155, 93, 229, 0.16), transparent 70%),
+      radial-gradient(50% 45% at 78% 82%, rgba(47, 158, 68, 0.14), transparent 70%),
+      radial-gradient(40% 40% at 18% 88%, rgba(232, 140, 48, 0.13), transparent 70%),
+      var(--bg);
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  /* Glass card — the app's own recipe: blur + saturate behind the pane. */
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+    backdrop-filter: blur(22px) saturate(1.6);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0;
+  }
+  nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  nav .brand img { width: 28px; height: 28px; }
+  nav .links { display: flex; gap: 22px; font-size: 14px; }
+  nav a { color: var(--text-2); text-decoration: none; transition: color 0.15s; }
+  nav a:hover { color: var(--text); }
+
+  header { padding: 72px 0 40px; text-align: center; }
+  header img.mark { width: 96px; height: 96px; margin-bottom: 24px; }
+  h1 {
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.08; letter-spacing: -0.02em; font-weight: 700;
+  }
+  h1 .glassword {
+    background: linear-gradient(120deg, #8ecbff, #c6b3ff 55%, #9be2b0);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header p.sub {
+    margin: 18px auto 0; max-width: 560px;
+    color: var(--text-2); font-size: 19px;
+  }
+  .cta { display: flex; gap: 12px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; text-decoration: none;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #0a1a2a; }
+  .btn-primary:hover { background: #8ec7ff; }
+  .btn-ghost {
+    color: var(--text); background: var(--glass);
+    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+    backdrop-filter: blur(22px) saturate(1.6);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { background: var(--glass-strong); }
+  header .fineprint { margin-top: 14px; font-size: 13px; color: var(--text-3); }
+
+  .shot { display: block; width: 100%; border-radius: var(--radius); border: 1px solid var(--line); }
+  .hero-shot { margin: 48px auto 0; max-width: 720px; }
+
+  section { padding: 72px 0 0; }
+  .kicker {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  h2 { font-size: 30px; letter-spacing: -0.015em; margin-bottom: 14px; }
+  .lead { color: var(--text-2); max-width: 640px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 34px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .card { padding: 22px; }
+  .card h3 { font-size: 16px; margin-bottom: 6px; font-weight: 600; }
+  .card p { font-size: 14px; color: var(--text-2); }
+  .card .ico { font-size: 20px; margin-bottom: 12px; display: block; }
+
+  .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 34px; }
+  @media (max-width: 800px) { .gallery { grid-template-columns: 1fr; } }
+
+  .split { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; margin-top: 34px; }
+  @media (max-width: 800px) { .split { grid-template-columns: 1fr; } }
+
+  table.keys { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.keys td { padding: 9px 6px; border-bottom: 1px solid var(--line); }
+  table.keys td:first-child { color: var(--text-2); }
+  table.keys td:last-child { text-align: right; white-space: nowrap; }
+  kbd {
+    display: inline-block; padding: 2px 7px; margin-left: 4px;
+    font: 12px/1.6 ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--glass-strong); border: 1px solid var(--line);
+    border-bottom-width: 2px; border-radius: 6px;
+  }
+
+  pre {
+    margin-top: 14px; padding: 14px 18px; overflow-x: auto;
+    font: 13px/1.7 ui-monospace, "SF Mono", Menlo, monospace;
+    color: #bfe3ff;
+  }
+
+  details {
+    padding: 16px 22px; margin-top: 10px; cursor: pointer;
+  }
+  details summary { font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; }
+  details summary::after { content: "+"; color: var(--text-3); }
+  details[open] summary::after { content: "–"; }
+  details p { margin-top: 10px; font-size: 14px; color: var(--text-2); }
+  details a { color: var(--accent); }
+
+  footer {
+    margin-top: 88px; padding: 28px 0 44px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    font-size: 13px; color: var(--text-3);
+  }
+  footer a { color: var(--text-2); text-decoration: none; }
+  footer a:hover { color: var(--text); }
+
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+
+<div class="wrap">
+  <nav>
+    <div class="brand"><img src="icon.png" alt=""> Better Stickies</div>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#glass">The glass</a>
+      <a href="#download">Download</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/jamesgalante/better-stickies">GitHub</a>
+    </div>
+  </nav>
+
+  <header>
+    <img class="mark" src="icon.png" alt="Better Stickies icon">
+    <h1>Sticky notes made of<br><span class="glassword">Liquid Glass</span></h1>
+    <p class="sub">Clear, refractive notes that float on your desktop — from crystal
+    glass to solid color. Rich text inside, nothing else in the way.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/jamesgalante/better-stickies/releases/latest">↓&nbsp; Download for macOS</a>
+      <a class="btn btn-ghost" href="https://github.com/jamesgalante/better-stickies">View on GitHub</a>
+    </div>
+    <p class="fineprint">Free &amp; open source · macOS 26 · MIT</p>
+    <img class="shot hero-shot reveal" src="hero.png" alt="A clear glass sticky note with a checklist, a highlight, and a link, floating over a blue desktop">
+  </header>
+
+  <section id="why" class="reveal">
+    <p class="kicker">Why</p>
+    <h2>Stickies, but this decade</h2>
+    <p class="lead">macOS Stickies hasn’t changed since the ’90s. Better Stickies rebuilds
+    the idea around macOS&nbsp;26’s Liquid Glass: every note is a real glass pane that
+    refracts and saturates whatever sits behind it. A note is just a close dot, a pin,
+    and your words — everything else lives in the menu bar.</p>
+  </section>
+
+  <section id="features" class="reveal">
+    <p class="kicker">Features</p>
+    <h2>Small app, complete notes</h2>
+    <div class="grid">
+      <div class="glass card"><span class="ico">🫧</span><h3>Real Liquid Glass</h3>
+        <p>Eight transparency levels from crystal to opaque, five saturation levels, and edge refraction that actually bends the desktop.</p></div>
+      <div class="glass card"><span class="ico">✍️</span><h3>Rich text</h3>
+        <p>Bold, italic, underline, strikethrough, ink colors, highlighter, four typefaces, per-note size — all from the Format menu.</p></div>
+      <div class="glass card"><span class="ico">⌨️</span><h3>Markdown shorthands</h3>
+        <p><code>- </code> becomes a bullet, <code>[] </code> a checkbox, <code>**bold**</code> converts as you type. Nothing auto-continues; you stay in control.</p></div>
+      <div class="glass card"><span class="ico">📐</span><h3>Shape &amp; layout</h3>
+        <p>Corner radius, padding, alignment, line spacing, wrap or horizontal scroll, and fit-to-text height that grows as you type.</p></div>
+      <div class="glass card"><span class="ico">🗂</span><h3>Stash &amp; Library</h3>
+        <p>Closing a note never deletes it. Browse and search everything, then pull notes back onto the desktop. Double-click to collapse any note to a slim bar.</p></div>
+      <div class="glass card"><span class="ico">🤖</span><h3>Automation-friendly</h3>
+        <p>Notes live in one plain JSON file that scripts and agents can read <em>and write</em> while the app runs — changes merge in live.</p></div>
+    </div>
+    <div class="gallery">
+      <img class="shot reveal" src="quote.png" alt="A dark frosted note with a gold edge and a centered serif quote">
+      <img class="shot reveal" src="groceries.png" alt="A saturated pill-cornered note over a coastal wallpaper">
+    </div>
+  </section>
+
+  <section id="glass" class="reveal">
+    <p class="kicker">Under the hood</p>
+    <h2>How the glass works</h2>
+    <div class="split">
+      <div>
+        <p class="lead">There’s no public API for most of what these notes do. Each pane is an
+        <code>NSGlassEffectView</code> in its clear style over a rewritten
+        <code>NSVisualEffectView</code> backdrop — fog washes hidden, saturation boosted,
+        sampling forced to full resolution — plus a handful of documented private-API
+        overrides that keep the glass lively when windows lose focus.</p>
+        <p class="lead" style="margin-top:12px">Every override states the symptom it fixes and fails safe:
+        if a future macOS renames the internals, notes fade to standard materials instead
+        of breaking. The full story is in the source.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost" href="https://github.com/jamesgalante/better-stickies/blob/main/Sources/Stickies/Window.swift">Read Window.swift</a></p>
+      </div>
+      <div class="glass card">
+        <h3 style="margin-bottom:12px">This page is in on it</h3>
+        <p>These cards use the same recipe the app discovered:
+        <code>backdrop-filter: blur(22px) saturate(1.6)</code> — the web’s version of the
+        note backdrop. What you’re reading is sitting on the formula.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="shortcuts" class="reveal">
+    <p class="kicker">Keyboard</p>
+    <h2>Everything within reach</h2>
+    <div class="split">
+      <div class="glass card">
+        <table class="keys">
+          <tr><td>New sticky</td><td><kbd>⌘N</kbd></td></tr>
+          <tr><td>Close (stashes to Library)</td><td><kbd>⌘W</kbd></td></tr>
+          <tr><td>Library</td><td><kbd>⌘⇧L</kbd></td></tr>
+          <tr><td>Bold / Italic / Underline</td><td><kbd>⌘B</kbd><kbd>⌘I</kbd><kbd>⌘U</kbd></td></tr>
+          <tr><td>Strikethrough</td><td><kbd>⌘⇧X</kbd></td></tr>
+          <tr><td>Checklist line</td><td><kbd>⌘L</kbd></td></tr>
+          <tr><td>Add link</td><td><kbd>⌘K</kbd></td></tr>
+          <tr><td>Align left / center / right</td><td><kbd>⌘{</kbd><kbd>⌘|</kbd><kbd>⌘}</kbd></td></tr>
+          <tr><td>Float on top</td><td><kbd>⌘⇧F</kbd></td></tr>
+        </table>
+      </div>
+      <div>
+        <p class="lead">Text styling lives in <strong>Format</strong>; the pane itself —
+        color, edge glow, glass, corners, saturation, padding, wrap, fit — lives in
+        <strong>Note</strong>. The sticky stays bare.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="reveal">
+    <p class="kicker">Download</p>
+    <h2>Get Better Stickies</h2>
+    <div class="split">
+      <div>
+        <p class="lead">Grab the zip, drag the app to <code>/Applications</code>, and
+        right-click&nbsp;→&nbsp;Open the first time — it’s an unsigned hobby build, so
+        macOS asks once. Or clear the flag yourself:</p>
+        <pre class="glass">xattr -dr com.apple.quarantine "/Applications/Better Stickies.app"</pre>
+        <p style="margin-top:20px"><a class="btn btn-primary" href="https://github.com/jamesgalante/better-stickies/releases/latest">↓&nbsp; Latest release</a></p>
+      </div>
+      <div class="glass card">
+        <h3 style="margin-bottom:12px">Requirements</h3>
+        <p>macOS 26 for the full Liquid Glass rendering.<br>
+        Earlier versions get a frosted-blur fallback.<br><br>
+        Building from source needs Xcode 26 —<br>
+        <code>Scripts/make_app.sh</code> does the rest.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="reveal">
+    <p class="kicker">FAQ</p>
+    <h2>Questions</h2>
+    <details class="glass"><summary>Is it safe to open an unsigned app?</summary>
+      <p>The code is fully open — <a href="https://github.com/jamesgalante/better-stickies">read it</a>, build it yourself with <code>Scripts/make_app.sh</code>, and the release zip is produced by that same script. “Unsigned” only means there’s no $99/year Apple Developer membership behind it.</p></details>
+    <details class="glass"><summary>Where do my notes live?</summary>
+      <p>In one JSON file: <code>~/Library/Application Support/BetterStickies/notes.json</code>. Plain, documented, and safe for external tools to edit while the app runs — the app watches the file and merges outside changes without clobbering what you’re typing.</p></details>
+    <details class="glass"><summary>Does it run on older macOS?</summary>
+      <p>It launches on macOS 14+, but the signature look needs the macOS 26 Liquid Glass engine. Older systems render a classic frosted blur instead.</p></details>
+    <details class="glass"><summary>Why doesn’t the glass dim when a note loses focus?</summary>
+      <p>Deliberately. macOS dims glass on unfocused windows; sticky notes live unfocused, so the app keeps every pane lively via a few careful private-API overrides that fail safe on future macOS versions.</p></details>
+    <details class="glass"><summary>What does it cost?</summary>
+      <p>Nothing. MIT licensed, no account, no telemetry — it’s a desktop app that writes a JSON file.</p></details>
+  </section>
+
+  <footer>
+    <div>Better Stickies · MIT © 2026 James Galante</div>
+    <div>
+      <a href="https://github.com/jamesgalante/better-stickies">GitHub</a> ·
+      <a href="https://github.com/jamesgalante/better-stickies/releases">Releases</a> ·
+      <a href="https://github.com/jamesgalante/better-stickies/issues">Issues</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in");
+        observer.unobserve(entry.target);
+      }
+    }
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+</script>
+</body>
+</html>
