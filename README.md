@@ -29,6 +29,10 @@
   <img src="docs/groceries.png" width="49%" alt="A saturated pill-cornered note over a coastal wallpaper">
 </p>
 
+<p align="center">
+  <img src="docs/todo.png" width="55%" alt="A solid lavender note with a mono to-do list">
+</p>
+
 ---
 
 ## Why
@@ -41,15 +45,17 @@ a note is just a close dot, a pin, and your text.
 ## Features
 
 - **Liquid Glass panes** — genuinely clear glass with edge refraction over a
-  color-saturating backdrop. Eight glass levels, from crystal to fully opaque.
+  color-saturating backdrop. Eight transparency levels from crystal to fully
+  opaque, five saturation levels from untouched to electric.
 - **Rich text** — bold, italic, underline, strikethrough, ink colors, highlighter,
   four typefaces, per-note text size.
 - **Markdown shorthands** — `- ` becomes a bullet, `[] ` a checkbox, `**bold**` and
   `*italic*` convert as you type. Nothing auto-continues; you stay in control.
 - **Checklists & links** — clickable checkboxes; link selections to websites, files,
   or folders; drag & drop URLs and files straight onto a note.
-- **Shape & layout** — corner radius, padding, alignment, and line spacing per note;
-  wrap text or scroll it horizontally; fit-to-text height that grows as you type.
+- **Shape & layout** — corner radius presets (Sharp to Pill), padding, alignment,
+  and line spacing per note; wrap text or scroll it horizontally; fit-to-text
+  height that grows and shrinks as you type.
 - **Collapse** — double-click the top edge and a note rolls up to a slim glass bar.
 - **Stash & Library** — closing a note never deletes it; browse and search everything
   with <kbd>⌘⇧L</kbd> and pull notes back onto the desktop.
@@ -60,7 +66,7 @@ a note is just a close dot, a pin, and your text.
 
 ## Install
 
-1. Download the latest zip from [Releases](../../releases/latest).
+1. **[Download Better-Stickies.zip](https://github.com/jamesgalante/better-stickies/releases/latest/download/Better-Stickies.zip)** — always the latest build.
 2. Unzip and drag **Better Stickies.app** into `/Applications`.
 3. First launch: right-click the app → **Open** → **Open**
    *(the app isn't notarized — no Apple Developer program behind it)*, or:

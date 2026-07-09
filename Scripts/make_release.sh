@@ -9,7 +9,9 @@ VERSION="${1:-1.0}"
 zsh Scripts/make_app.sh
 
 mkdir -p dist
-ZIP="dist/Better-Stickies-${VERSION}.zip"
+# Stable asset name: /releases/latest/download/Better-Stickies.zip always
+# fetches the newest build directly. The version lives in the release tag.
+ZIP="dist/Better-Stickies.zip"
 rm -f "$ZIP"
 # ditto preserves the bundle structure and extended attributes; plain zip
 # tools can corrupt .app bundles.

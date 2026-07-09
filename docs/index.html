@@ -156,6 +156,12 @@
     color: #bfe3ff;
   }
 
+  p.lead a { color: var(--accent); text-decoration: none; }
+  p.lead a:hover { text-decoration: underline; }
+
+  ol.steps { margin: 6px 0 0 22px; display: grid; gap: 10px; color: var(--text-2); font-size: 15px; }
+  ol.steps li::marker { color: var(--accent); font-weight: 600; }
+
   details {
     padding: 16px 22px; margin-top: 10px; cursor: pointer;
   }
@@ -201,7 +207,7 @@
     <p class="sub">Clear, refractive notes that float on your desktop — from crystal
     glass to solid color. Rich text inside, nothing else in the way.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/jamesgalante/better-stickies/releases/latest">↓&nbsp; Download for macOS</a>
+      <a class="btn btn-primary" href="https://github.com/jamesgalante/better-stickies/releases/latest/download/Better-Stickies.zip">↓&nbsp; Download for macOS</a>
       <a class="btn btn-ghost" href="https://github.com/jamesgalante/better-stickies">View on GitHub</a>
     </div>
     <p class="fineprint">Free &amp; open source · macOS 26 · MIT</p>
@@ -210,6 +216,7 @@
       <button class="arrow prev" aria-label="Previous screenshot">‹</button>
       <div class="track" id="track">
         <div class="slide"><img src="hero.png" alt="A clear glass sticky note with a checklist, a highlight, and a link, floating over a blue desktop"></div>
+        <div class="slide"><img src="todo.png" alt="A solid lavender note with a mono to-do list"></div>
         <div class="slide"><img src="quote.png" alt="A dark frosted note with a gold edge and a centered serif quote"></div>
         <div class="slide"><img src="groceries.png" alt="A saturated pill-cornered note over a coastal wallpaper"></div>
       </div>
@@ -220,13 +227,10 @@
 
   <section id="why" class="reveal">
     <p class="kicker">Why</p>
-    <h2>Stickies, but this decade</h2>
-    <p class="lead">macOS Stickies hasn’t changed since the ’90s. Better Stickies rebuilds
-    the idea around macOS&nbsp;26’s Liquid Glass: every note is a real glass pane that
-    refracts and saturates whatever sits behind it. A note is just a close dot, a pin,
-    and your words — everything else lives in the menu bar.</p>
-    <p class="lead" style="margin-top:12px">Notes live in one plain JSON file that scripts
-    and agents can read <em>and write</em> while the app runs — changes merge in live.</p>
+    <h2>I wanted different colors for my sticky notes.</h2>
+    <p class="lead">It got out of hand. The full feature list — including the part where
+    scripts and AI agents can read <em>and write</em> your notes while the app runs — is
+    over on <a href="https://github.com/jamesgalante/better-stickies#features">GitHub</a>.</p>
   </section>
 
   <section id="download" class="reveal">
@@ -234,11 +238,15 @@
     <h2>Get Better Stickies</h2>
     <div class="split">
       <div>
-        <p class="lead">Grab the zip, drag the app to <code>/Applications</code>, and
-        right-click&nbsp;→&nbsp;Open the first time — it’s an unsigned hobby build, so
-        macOS asks once. Or clear the flag yourself:</p>
+        <ol class="steps">
+          <li>Download the zip below.</li>
+          <li>Drag <strong>Better Stickies.app</strong> into <code>/Applications</code>.</li>
+          <li>First launch: right-click the app → <strong>Open</strong> → <strong>Open</strong>.
+              macOS asks once because it’s an unsigned hobby build — or clear the
+              flag instead:</li>
+        </ol>
         <pre class="glass">xattr -dr com.apple.quarantine "/Applications/Better Stickies.app"</pre>
-        <p style="margin-top:20px"><a class="btn btn-primary" href="https://github.com/jamesgalante/better-stickies/releases/latest">↓&nbsp; Latest release</a></p>
+        <p style="margin-top:20px"><a class="btn btn-primary" href="https://github.com/jamesgalante/better-stickies/releases/latest/download/Better-Stickies.zip">↓&nbsp; Download Better Stickies</a></p>
       </div>
       <div class="glass card">
         <h3 style="margin-bottom:12px">Requirements</h3>
