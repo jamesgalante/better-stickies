@@ -101,37 +101,17 @@ func drawIcon(pixels: Int) -> NSBitmapImageRep {
     NSColor(calibratedWhite: 1, alpha: 0.75).setStroke()
     rim.stroke()
 
-    // Note content: checkbox + lines in white ink
+    // Note content: three ink lines, longest on top like a note
     let ink = NSColor(calibratedWhite: 1, alpha: 0.92)
     let lineH = pane.height * 0.075
     let contentX = pane.minX + pane.width * 0.14
-    // checked circle
-    let boxR = pane.width * 0.13
-    let boxRect = NSRect(x: contentX, y: pane.maxY - pane.height*0.32, width: boxR, height: boxR)
-    let circle = NSBezierPath(ovalIn: boxRect)
-    circle.lineWidth = s * 0.009
-    ink.setStroke()
-    circle.stroke()
-    let check = NSBezierPath()
-    check.lineWidth = s * 0.010
-    check.lineCapStyle = .round
-    check.lineJoinStyle = .round
-    check.move(to: NSPoint(x: boxRect.minX + boxR*0.28, y: boxRect.minY + boxR*0.50))
-    check.line(to: NSPoint(x: boxRect.minX + boxR*0.46, y: boxRect.minY + boxR*0.30))
-    check.line(to: NSPoint(x: boxRect.minX + boxR*0.75, y: boxRect.minY + boxR*0.68))
-    check.stroke()
-    // line next to checkbox
     ink.setFill()
-    NSBezierPath(roundedRect: NSRect(x: boxRect.maxX + pane.width*0.07,
-                                     y: boxRect.midY - lineH/2,
-                                     width: pane.width*0.38, height: lineH),
-                 xRadius: lineH/2, yRadius: lineH/2).fill()
-    // two more lines
-    for (i, w) in [0.58, 0.42].enumerated() {
-        let y = pane.minY + pane.height * (0.38 - CGFloat(i)*0.19) - lineH/2
+    for (i, widthFactor) in [0.62, 0.48, 0.36].enumerated() {
+        let y = pane.minY + pane.height * (0.70 - CGFloat(i) * 0.21) - lineH / 2
         NSBezierPath(roundedRect: NSRect(x: contentX, y: y,
-                                         width: pane.width*CGFloat(w), height: lineH),
-                     xRadius: lineH/2, yRadius: lineH/2).fill()
+                                         width: pane.width * CGFloat(widthFactor),
+                                         height: lineH),
+                     xRadius: lineH / 2, yRadius: lineH / 2).fill()
     }
 
     NSGraphicsContext.restoreGraphicsState()
