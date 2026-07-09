@@ -309,11 +309,12 @@ final class WindowContext: ObservableObject {
     /// only — never the glass or content, so text stays crisp and the
     /// saturation boost survives all the way down to "clear" — and both
     /// panes round to the note's corner radius.
-    func updateGlass(isDark: Bool, frost: Double, radius: Double) {
+    func updateGlass(isDark: Bool, frost: Double, radius: Double, saturation: Double) {
         let look = NSAppearance(named: isDark ? .darkAqua : .aqua)
         glassView?.appearance = look
         frostView?.appearance = look
         frostView?.blurRadius = frost * 30
+        frostView?.saturation = saturation
         if #available(macOS 26.0, *), let glass = glassView as? NSGlassEffectView,
            glass.cornerRadius != radius {
             glass.cornerRadius = radius

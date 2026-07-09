@@ -121,7 +121,8 @@ struct StickyContent: View {
 
     private func pushGlassAppearance() {
         windowContext.updateGlass(isDark: appearance.isDark, frost: appearance.frostAlpha,
-                                  radius: appearance.cornerRadius)
+                                  radius: appearance.cornerRadius,
+                                  saturation: appearance.saturation)
     }
 
     private func handleCommand(_ command: StickyCommand) {
@@ -135,6 +136,7 @@ struct StickyContent: View {
         case .edge(let hex): note.edgeHex = hex
         case .glass(let value): note.tintStrength = value
         case .corner(let value): note.cornerRadius = value
+        case .saturate(let value): note.saturation = value
         case .toggleWrap: note.wrapText.toggle()
         case .align(let value): note.textAlignment = value
         case .spacing(let value): note.lineSpacing = value

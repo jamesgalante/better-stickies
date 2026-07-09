@@ -41,6 +41,8 @@ struct Appearance: Equatable {
     var fontKey: String = "rounded"   // rounded | serif | mono | hand
     var textSize: Double = 13
     var cornerRadius: Double = 16
+    /// Backdrop color boost: 1.0 = untouched desktop, 1.6 = the classic look.
+    var saturation: Double = 1.6
     /// false = long lines don't wrap; the note scrolls horizontally.
     var wrap: Bool = true
     /// Whole-note text alignment: left | center | right.
@@ -269,6 +271,8 @@ struct Note: Identifiable, Codable, Equatable {
     var textSize: Double = 13
     /// Pane corner rounding, in points.
     var cornerRadius: Double = 16
+    /// Backdrop saturation boost (1.0 = none).
+    var saturation: Double = 1.6
     /// Wrap long lines (true) or scroll horizontally (false).
     var wrapText: Bool = true
     /// Whole-note text alignment: left | center | right.
@@ -289,8 +293,8 @@ struct Note: Identifiable, Codable, Equatable {
     var appearance: Appearance {
         Appearance(tintHex: tintHex, strength: tintStrength, edgeHex: edgeHex,
                    fontKey: fontKey, textSize: textSize, cornerRadius: cornerRadius,
-                   wrap: wrapText, alignment: textAlignment, spacing: lineSpacing,
-                   padding: textPadding)
+                   saturation: saturation, wrap: wrapText, alignment: textAlignment,
+                   spacing: lineSpacing, padding: textPadding)
     }
 
     /// The first non-empty line stands in for a title (save filename, etc.).
@@ -342,8 +346,8 @@ struct Note: Identifiable, Codable, Equatable {
 extension Note {
     private enum CodingKeys: String, CodingKey {
         case id, version, tintHex, tintStrength, edgeHex, pinned, lines
-        case fontKey, textSize, cornerRadius, wrapText, textAlignment, lineSpacing
-        case textPadding, fitToText, stashed, collapsed, expandedHeight
+        case fontKey, textSize, cornerRadius, saturation, wrapText, textAlignment
+        case lineSpacing, textPadding, fitToText, stashed, collapsed, expandedHeight
         case legacyTheme = "themeName"
         case legacyCustomTint = "customTintHex"
         case legacyTitle = "title"
@@ -366,6 +370,7 @@ extension Note {
         fontKey = try c.decodeIfPresent(String.self, forKey: .fontKey) ?? "rounded"
         textSize = try c.decodeIfPresent(Double.self, forKey: .textSize) ?? 13
         cornerRadius = try c.decodeIfPresent(Double.self, forKey: .cornerRadius) ?? 16
+        saturation = try c.decodeIfPresent(Double.self, forKey: .saturation) ?? 1.6
         wrapText = try c.decodeIfPresent(Bool.self, forKey: .wrapText) ?? true
         textAlignment = try c.decodeIfPresent(String.self, forKey: .textAlignment) ?? "left"
         lineSpacing = try c.decodeIfPresent(String.self, forKey: .lineSpacing) ?? "normal"
@@ -443,6 +448,7 @@ extension Note {
         try c.encode(fontKey, forKey: .fontKey)
         try c.encode(textSize, forKey: .textSize)
         try c.encode(cornerRadius, forKey: .cornerRadius)
+        try c.encode(saturation, forKey: .saturation)
         try c.encode(wrapText, forKey: .wrapText)
         try c.encode(textAlignment, forKey: .textAlignment)
         try c.encode(lineSpacing, forKey: .lineSpacing)

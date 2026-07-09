@@ -20,6 +20,7 @@ enum StickyCommand {
     case edge(String?)
     case glass(Double)
     case corner(Double)
+    case saturate(Double)
     case toggleWrap
     case toggleFit
     case align(String)
@@ -56,6 +57,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     ]
     private static let cornerPresets: [(String, Double)] = [
         ("Sharp", 4), ("Soft", 10), ("Round", 16), ("Extra Round", 22), ("Pill", 28),
+    ]
+    /// Backdrop saturation ladder: level 1 leaves the desktop's colors
+    /// alone; level 2 is the app's classic 1.6× boost; equal steps beyond.
+    private static let saturationPresets: [(String, Double)] = [
+        ("None", 1.0), ("Standard", 1.6), ("Vivid", 2.2), ("Bold", 2.8), ("Electric", 3.4),
     ]
     private var libraryWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
@@ -243,6 +249,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         post(.corner(value))
     }
 
+    @objc func setSaturationPreset(_ sender: NSMenuItem) {
+        guard let value = sender.representedObject as? Double else { return }
+        post(.saturate(value))
+    }
+
     // MARK: Custom colors via the system color panel
     //
     // The color panel steals key status from the sticky, so notification
@@ -330,6 +341,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         case #selector(setCornerPreset(_:)):
             let radius = current?.cornerRadius ?? 16
             let nearest = Self.cornerPresets.min { abs($0.1 - radius) < abs($1.1 - radius) }?.1
+            menuItem.state = (menuItem.representedObject as? Double) == nearest ? .on : .off
+        case #selector(setSaturationPreset(_:)):
+            let saturation = current?.saturation ?? 1.6
+            let nearest = Self.saturationPresets.min {
+                abs($0.1 - saturation) < abs($1.1 - saturation)
+            }?.1
             menuItem.state = (menuItem.representedObject as? Double) == nearest ? .on : .off
         default:
             break
@@ -482,6 +499,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         cornerItem.submenu = cornerMenu
         noteMenu.addItem(cornerItem)
+
+        let saturationItem = NSMenuItem(title: "Saturation", action: nil, keyEquivalent: "")
+        let saturationMenu = NSMenu(title: "Saturation")
+        for (name, value) in Self.saturationPresets {
+            let item = NSMenuItem(title: name, action: #selector(setSaturationPreset(_:)),
+                                  keyEquivalent: "")
+            item.representedObject = value
+            item.target = self
+            saturationMenu.addItem(item)
+        }
+        saturationItem.submenu = saturationMenu
+        noteMenu.addItem(saturationItem)
 
         let paddingItem = NSMenuItem(title: "Padding", action: nil, keyEquivalent: "")
         let paddingMenu = NSMenu(title: "Padding")
