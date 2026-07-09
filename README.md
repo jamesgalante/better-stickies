@@ -17,6 +17,10 @@
 </p>
 
 <p align="center">
+  <b><a href="https://jamesgalante.github.io/better-stickies/">jamesgalante.github.io/better-stickies</a></b>
+</p>
+
+<p align="center">
   <img src="docs/hero.png" width="640" alt="A clear glass sticky note with a checklist, highlight, and link, floating over a blue desktop">
 </p>
 
