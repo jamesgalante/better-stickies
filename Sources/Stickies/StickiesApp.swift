@@ -19,6 +19,7 @@ enum StickyCommand {
     case tint(String)
     case edge(String?)
     case glass(Double)
+    case corner(Double)
     case togglePin
     case saveCopy
 }
@@ -40,8 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     private let store = NotesStore()
     private var windows: [UUID: NSWindow] = [:]
     private var cascadePoint = NSPoint.zero
-    /// The Glass slider hosted inside the Note menu; synced on menu open.
+    /// The Glass and Corners sliders hosted inside the Note menu; synced
+    /// on menu open.
     private weak var glassSlider: NSSlider?
+    private weak var cornerSlider: NSSlider?
     private var libraryWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -208,6 +211,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         post(.glass(sender.doubleValue))
     }
 
+    @objc private func cornerChanged(_ sender: NSSlider) {
+        post(.corner(sender.doubleValue))
+    }
+
     // MARK: Custom colors via the system color panel
     //
     // The color panel steals key status from the sticky, so notification
@@ -283,8 +290,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
     func menuWillOpen(_ menu: NSMenu) {
         guard menu.title == "Note" else { return }
-        glassSlider?.doubleValue = keyNote()?.tintStrength ?? 0.35
-        glassSlider?.isEnabled = keyNote() != nil
+        let note = keyNote()
+        glassSlider?.doubleValue = note?.tintStrength ?? 0.35
+        glassSlider?.isEnabled = note != nil
+        cornerSlider?.doubleValue = note?.cornerRadius ?? 16
+        cornerSlider?.isEnabled = note != nil
     }
 
     private func openWindow(for note: Note, cascade: Bool) {
@@ -410,7 +420,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         noteMenu.addItem(edgeItem)
 
         noteMenu.addItem(.separator())
-        noteMenu.addItem(makeGlassSliderItem())
+        let (glassItem, glassSliderControl) = makeSliderItem(
+            label: "Glass", min: 0, max: 1, initial: 0.35, action: #selector(glassChanged(_:)))
+        glassSlider = glassSliderControl
+        noteMenu.addItem(glassItem)
+        let (cornerItem, cornerSliderControl) = makeSliderItem(
+            label: "Corners", min: 4, max: 28, initial: 16, action: #selector(cornerChanged(_:)))
+        cornerSlider = cornerSliderControl
+        noteMenu.addItem(cornerItem)
         noteMenu.addItem(.separator())
 
         let floatItem = NSMenuItem(title: "Float on Top", action: #selector(toggleFloat),
@@ -519,25 +536,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         }
     }
 
-    /// A live transparency slider hosted directly in the Note menu,
-    /// like the volume slider in the sound menu.
-    private func makeGlassSliderItem() -> NSMenuItem {
+    /// A live slider hosted directly in the Note menu, like the volume
+    /// slider in the sound menu.
+    private func makeSliderItem(label: String, min: Double, max: Double, initial: Double,
+                                action: Selector) -> (NSMenuItem, NSSlider) {
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 26))
-        let label = NSTextField(labelWithString: "Glass")
-        label.font = .menuFont(ofSize: 13)
-        label.frame = NSRect(x: 21, y: 5, width: 48, height: 17)
-        container.addSubview(label)
+        let labelField = NSTextField(labelWithString: label)
+        labelField.font = .menuFont(ofSize: 13)
+        labelField.frame = NSRect(x: 21, y: 5, width: 48, height: 17)
+        container.addSubview(labelField)
 
-        let slider = NSSlider(value: 0.35, minValue: 0, maxValue: 1,
-                              target: self, action: #selector(glassChanged(_:)))
+        let slider = NSSlider(value: initial, minValue: min, maxValue: max,
+                              target: self, action: action)
         slider.isContinuous = true
         slider.controlSize = .small
         slider.frame = NSRect(x: 72, y: 4, width: 150, height: 18)
         container.addSubview(slider)
-        glassSlider = slider
 
         let item = NSMenuItem()
         item.view = container
-        return item
+        return (item, slider)
     }
 }

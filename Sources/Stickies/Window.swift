@@ -44,6 +44,14 @@ final class SaturatingFrostView: NSVisualEffectView {
 
     var blurRadius: Double = 0 { didSet { applyOptics() } }
     var saturation: Double = 1.6 { didSet { applyOptics() } }
+    /// Rounds the material via a regenerated maskImage (layer cornerRadius
+    /// doesn't survive NSVisualEffectView's layer management).
+    var cornerRadius: Double = 16 {
+        didSet {
+            guard cornerRadius != oldValue else { return }
+            maskImage = .roundedCornerMask(radius: cornerRadius)
+        }
+    }
 
     private var watchdog: Timer?
 
@@ -271,14 +279,20 @@ final class WindowContext: ObservableObject {
     }
 
     /// Keeps the panes in step with the note: appearance follows the tint's
-    /// light/dark side, and the transparency slider drives the frost's BLUR
+    /// light/dark side, the transparency slider drives the frost's BLUR
     /// only — never the glass or content, so text stays crisp and the
-    /// saturation boost survives all the way down to "clear".
-    func updateGlass(isDark: Bool, frost: Double) {
+    /// saturation boost survives all the way down to "clear" — and both
+    /// panes round to the note's corner radius.
+    func updateGlass(isDark: Bool, frost: Double, radius: Double) {
         let look = NSAppearance(named: isDark ? .darkAqua : .aqua)
         glassView?.appearance = look
         frostView?.appearance = look
         frostView?.blurRadius = frost * 30
+        if #available(macOS 26.0, *), let glass = glassView as? NSGlassEffectView,
+           glass.cornerRadius != radius {
+            glass.cornerRadius = radius
+        }
+        frostView?.cornerRadius = radius
     }
 }
 

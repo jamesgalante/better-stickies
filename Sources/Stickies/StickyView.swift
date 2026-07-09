@@ -53,7 +53,7 @@ struct StickyContent: View {
 
             if showLinkInput { linkInput }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: appearance.cornerRadius, style: .continuous))
         .overlay(edgeBorder)
         .environment(\.colorScheme, appearance.isDark ? .dark : .light)
         .onHover { windowHovered = $0 }
@@ -112,7 +112,8 @@ struct StickyContent: View {
     }
 
     private func pushGlassAppearance() {
-        windowContext.updateGlass(isDark: appearance.isDark, frost: appearance.frostAlpha)
+        windowContext.updateGlass(isDark: appearance.isDark, frost: appearance.frostAlpha,
+                                  radius: appearance.cornerRadius)
     }
 
     private func handleCommand(_ command: StickyCommand) {
@@ -125,6 +126,7 @@ struct StickyContent: View {
         case .tint(let hex): note.tintHex = hex
         case .edge(let hex): note.edgeHex = hex
         case .glass(let value): note.tintStrength = value
+        case .corner(let value): note.cornerRadius = value
         case .togglePin:
             note.pinned.toggle()
             windowContext.setPinned(note.pinned)
@@ -150,7 +152,7 @@ struct StickyContent: View {
     }
 
     private var edgeBorder: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
+        RoundedRectangle(cornerRadius: appearance.cornerRadius, style: .continuous)
             .strokeBorder(borderColor, lineWidth: borderWidth)
             .shadow(color: glowColor, radius: 9)
             .allowsHitTesting(false)
