@@ -23,6 +23,7 @@ enum StickyCommand {
     case toggleWrap
     case toggleFit
     case align(String)
+    case spacing(String)
     case togglePin
     case saveCopy
 }
@@ -214,6 +215,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         post(.align(sender.representedObject as? String ?? "left"))
     }
 
+    @objc func setSpacing(_ sender: NSMenuItem) {
+        post(.spacing(sender.representedObject as? String ?? "normal"))
+    }
+
     @objc func setTint(_ sender: NSMenuItem) {
         guard let hex = sender.representedObject as? String else { return }
         post(.tint(hex))
@@ -307,6 +312,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         case #selector(setAlignment(_:)):
             let alignment = current?.textAlignment ?? "left"
             menuItem.state = (menuItem.representedObject as? String) == alignment ? .on : .off
+        case #selector(setSpacing(_:)):
+            let spacing = current?.lineSpacing ?? "normal"
+            menuItem.state = (menuItem.representedObject as? String) == spacing ? .on : .off
         case #selector(setGlassPreset(_:)):
             let strength = current?.tintStrength ?? 0.35
             let nearest = Self.glassPresets.min { abs($0.1 - strength) < abs($1.1 - strength) }?.1
@@ -526,6 +534,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             item.target = self
             formatMenu.addItem(item)
         }
+        let spacingItem = NSMenuItem(title: "Spacing", action: nil, keyEquivalent: "")
+        let spacingMenu = NSMenu(title: "Spacing")
+        for (title, key) in [("Tight", "tight"), ("Normal", "normal"), ("Roomy", "roomy")] {
+            let item = NSMenuItem(title: title, action: #selector(setSpacing(_:)),
+                                  keyEquivalent: "")
+            item.representedObject = key
+            item.target = self
+            spacingMenu.addItem(item)
+        }
+        spacingItem.submenu = spacingMenu
+        formatMenu.addItem(spacingItem)
         formatMenu.addItem(.separator())
 
         let inkItem = NSMenuItem(title: "Text Color", action: nil, keyEquivalent: "")

@@ -45,12 +45,23 @@ struct Appearance: Equatable {
     var wrap: Bool = true
     /// Whole-note text alignment: left | center | right.
     var alignment: String = "left"
+    /// Line spacing preset: tight | normal | roomy.
+    var spacing: String = "normal"
 
     var nsTextAlignment: NSTextAlignment {
         switch alignment {
         case "center": .center
         case "right": .right
         default: .left
+        }
+    }
+
+    /// (line spacing, paragraph spacing) for the preset.
+    var spacingValues: (line: Double, paragraph: Double) {
+        switch spacing {
+        case "tight": (1, 0)
+        case "roomy": (7, 5)
+        default: (3, 2)
         }
     }
 
@@ -84,6 +95,7 @@ struct Appearance: Equatable {
     func textStyleDiffers(from other: Appearance) -> Bool {
         isDark != other.isDark || fontKey != other.fontKey
             || textSize != other.textSize || alignment != other.alignment
+            || spacing != other.spacing
     }
 
     /// The note's base font: a curated set that stays readable on glass.
@@ -250,6 +262,8 @@ struct Note: Identifiable, Codable, Equatable {
     var wrapText: Bool = true
     /// Whole-note text alignment: left | center | right.
     var textAlignment: String = "left"
+    /// Line spacing preset: tight | normal | roomy.
+    var lineSpacing: String = "normal"
     /// Window height hugs the content (width stays user-controlled).
     var fitToText: Bool = false
     /// Stashed notes live in the library instead of on the desktop.
@@ -262,7 +276,7 @@ struct Note: Identifiable, Codable, Equatable {
     var appearance: Appearance {
         Appearance(tintHex: tintHex, strength: tintStrength, edgeHex: edgeHex,
                    fontKey: fontKey, textSize: textSize, cornerRadius: cornerRadius,
-                   wrap: wrapText, alignment: textAlignment)
+                   wrap: wrapText, alignment: textAlignment, spacing: lineSpacing)
     }
 
     /// The first non-empty line stands in for a title (save filename, etc.).
@@ -314,8 +328,8 @@ struct Note: Identifiable, Codable, Equatable {
 extension Note {
     private enum CodingKeys: String, CodingKey {
         case id, version, tintHex, tintStrength, edgeHex, pinned, lines
-        case fontKey, textSize, cornerRadius, wrapText, textAlignment, fitToText
-        case stashed, collapsed, expandedHeight
+        case fontKey, textSize, cornerRadius, wrapText, textAlignment, lineSpacing
+        case fitToText, stashed, collapsed, expandedHeight
         case legacyTheme = "themeName"
         case legacyCustomTint = "customTintHex"
         case legacyTitle = "title"
@@ -340,6 +354,7 @@ extension Note {
         cornerRadius = try c.decodeIfPresent(Double.self, forKey: .cornerRadius) ?? 16
         wrapText = try c.decodeIfPresent(Bool.self, forKey: .wrapText) ?? true
         textAlignment = try c.decodeIfPresent(String.self, forKey: .textAlignment) ?? "left"
+        lineSpacing = try c.decodeIfPresent(String.self, forKey: .lineSpacing) ?? "normal"
         fitToText = try c.decodeIfPresent(Bool.self, forKey: .fitToText) ?? false
         stashed = try c.decodeIfPresent(Bool.self, forKey: .stashed) ?? false
         collapsed = try c.decodeIfPresent(Bool.self, forKey: .collapsed) ?? false
@@ -415,6 +430,7 @@ extension Note {
         try c.encode(cornerRadius, forKey: .cornerRadius)
         try c.encode(wrapText, forKey: .wrapText)
         try c.encode(textAlignment, forKey: .textAlignment)
+        try c.encode(lineSpacing, forKey: .lineSpacing)
         try c.encode(fitToText, forKey: .fitToText)
         try c.encode(stashed, forKey: .stashed)
         try c.encode(collapsed, forKey: .collapsed)
