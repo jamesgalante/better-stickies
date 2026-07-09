@@ -41,11 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     private let store = NotesStore()
     private var windows: [UUID: NSWindow] = [:]
     private var cascadePoint = NSPoint.zero
-    /// The Note-menu items hosting the Glass and Corners sliders. Their
-    /// views are rebuilt on every menu open — NSMenu re-hosts custom item
-    /// views across open/close cycles and stale layouts render garbled.
-    private weak var glassSliderItem: NSMenuItem?
-    private weak var cornerSliderItem: NSMenuItem?
+    /// The Glass and Corners sliders hosted in the Note menu; values are
+    /// synced on menu open.
+    private weak var glassSlider: NSSlider?
+    private weak var cornerSlider: NSSlider?
     private var libraryWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -292,14 +291,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     func menuWillOpen(_ menu: NSMenu) {
         guard menu.title == "Note" else { return }
         let note = keyNote()
-        glassSliderItem?.view = makeSliderView(
-            label: "Glass", min: 0, max: 1,
-            value: note?.tintStrength ?? 0.35, enabled: note != nil,
-            action: #selector(glassChanged(_:)))
-        cornerSliderItem?.view = makeSliderView(
-            label: "Corners", min: 4, max: 28,
-            value: note?.cornerRadius ?? 16, enabled: note != nil,
-            action: #selector(cornerChanged(_:)))
+        glassSlider?.doubleValue = note?.tintStrength ?? 0.35
+        glassSlider?.isEnabled = note != nil
+        cornerSlider?.doubleValue = note?.cornerRadius ?? 16
+        cornerSlider?.isEnabled = note != nil
     }
 
     private func openWindow(for note: Note, cascade: Bool) {
@@ -425,15 +420,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         noteMenu.addItem(edgeItem)
 
         noteMenu.addItem(.separator())
+        let (glassView, glassControl) = makeSliderView(
+            label: "Glass", min: 0, max: 1, action: #selector(glassChanged(_:)))
         let glassItem = NSMenuItem()
-        glassItem.view = makeSliderView(label: "Glass", min: 0, max: 1, value: 0.35,
-                                        enabled: true, action: #selector(glassChanged(_:)))
-        glassSliderItem = glassItem
+        glassItem.view = glassView
+        glassSlider = glassControl
         noteMenu.addItem(glassItem)
+        let (cornerView, cornerControl) = makeSliderView(
+            label: "Corners", min: 4, max: 28, action: #selector(cornerChanged(_:)))
         let cornerItem = NSMenuItem()
-        cornerItem.view = makeSliderView(label: "Corners", min: 4, max: 28, value: 16,
-                                         enabled: true, action: #selector(cornerChanged(_:)))
-        cornerSliderItem = cornerItem
+        cornerItem.view = cornerView
+        cornerSlider = cornerControl
         noteMenu.addItem(cornerItem)
         noteMenu.addItem(.separator())
 
@@ -544,23 +541,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     }
 
     /// A live slider row for the Note menu, like the volume slider in the
-    /// sound menu. Built fresh per menu open; the label sizes to fit.
-    private func makeSliderView(label: String, min: Double, max: Double, value: Double,
-                                enabled: Bool, action: Selector) -> NSView {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 26))
+    /// sound menu. Laid out with Auto Layout: NSMenu re-hosts custom item
+    /// views on every open, and frame-based layouts come back garbled —
+    /// constraints get re-solved on each re-host.
+    private func makeSliderView(label: String, min: Double, max: Double,
+                                action: Selector) -> (NSView, NSSlider) {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+
         let labelField = NSTextField(labelWithString: label)
         labelField.font = .menuFont(ofSize: 13)
-        labelField.sizeToFit()
-        labelField.setFrameOrigin(NSPoint(x: 21, y: (26 - labelField.frame.height) / 2))
+        labelField.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(labelField)
 
-        let slider = NSSlider(value: value, minValue: min, maxValue: max,
+        let slider = NSSlider(value: min, minValue: min, maxValue: max,
                               target: self, action: action)
         slider.isContinuous = true
         slider.controlSize = .small
-        slider.isEnabled = enabled
-        slider.frame = NSRect(x: 82, y: 4, width: 140, height: 18)
+        slider.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(slider)
-        return container
+
+        NSLayoutConstraint.activate([
+            container.widthAnchor.constraint(equalToConstant: 240),
+            container.heightAnchor.constraint(equalToConstant: 26),
+            labelField.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 21),
+            labelField.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            slider.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 82),
+            slider.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
+            slider.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        ])
+        return (container, slider)
     }
 }
