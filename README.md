@@ -62,7 +62,8 @@ a note is just a close dot, a pin, and your text.
 - **Float on top** — pin a note above every window.
 - **Automation-friendly storage** — notes live in one plain JSON file. External tools
   (scripts, agents) can read *and write* it while the app runs; changes are watched
-  and merged live without clobbering your edits.
+  and merged live without clobbering your edits. Schema, write rules, and recipes:
+  [AGENTS.md](AGENTS.md).
 
 ## Install
 

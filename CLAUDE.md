@@ -48,6 +48,8 @@ writes are logged (subsystem `com.jamesgalante.better-stickies`, category `store
 then overwritten by the next save. External writers should prefer atomic replaces,
 match notes by `id` (never array index), round-trip unknown keys, and leave
 actively-edited notes alone — a note with unsaved local edits wins the merge.
+The full on-disk schema and agent recipes live in `AGENTS.md`; keep it in sync
+when `Note`/`Span` fields change.
 
 **Windows:** `AppDelegate.openWindow` per unstashed note. `WindowFactory` (Window.swift)
 builds a borderless `StickyWindow`; `WindowContext` is the SwiftUI↔AppKit bridge
