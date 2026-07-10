@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 VERSION="${1:-1.0}"
 
-zsh Scripts/make_app.sh
+zsh Scripts/make_app.sh "$VERSION"
 
 mkdir -p dist
 # Stable asset name: /releases/latest/download/Better-Stickies.zip always
