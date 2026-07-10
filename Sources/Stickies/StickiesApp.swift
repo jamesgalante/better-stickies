@@ -31,6 +31,7 @@ enum StickyCommand {
     case saveCopy
     case useAsDefaultStyle
     case applyDefaultStyle
+    case applyStyle(NoteStyle)
 }
 
 // Plain AppKit lifecycle instead of SwiftUI's WindowGroup: SwiftUI insists on
@@ -46,7 +47,7 @@ enum Main {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, NSMenuDelegate {
     private let store = NotesStore()
     private var windows: [UUID: NSWindow] = [:]
     private var cascadePoint = NSPoint.zero
@@ -236,6 +237,80 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func toggleFit() { post(.toggleFit) }
     @objc func useAsDefaultStyle() { post(.useAsDefaultStyle) }
     @objc func applyDefaultStyle() { post(.applyDefaultStyle) }
+
+    // MARK: Named styles (Note ▸ Styles)
+
+    /// Rebuild the Styles submenu on every open: preset names, save,
+    /// delete. Plain items only — custom views garble on menu re-hosting.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu.title == "Styles" else { return }
+        menu.removeAllItems()
+
+        let styles = NoteStyle.namedStyles()
+        for name in styles.keys.sorted() {
+            let item = NSMenuItem(title: name, action: #selector(applyNamedStyle(_:)),
+                                  keyEquivalent: "")
+            item.representedObject = name
+            item.target = self
+            menu.addItem(item)
+        }
+        if !styles.isEmpty { menu.addItem(.separator()) }
+
+        let saveItem = NSMenuItem(title: "Save Current Style…",
+                                  action: #selector(saveNamedStyle), keyEquivalent: "")
+        saveItem.target = self
+        menu.addItem(saveItem)
+
+        if !styles.isEmpty {
+            let deleteItem = NSMenuItem(title: "Delete", action: nil, keyEquivalent: "")
+            let deleteMenu = NSMenu(title: "Delete")
+            for name in styles.keys.sorted() {
+                let item = NSMenuItem(title: name, action: #selector(deleteNamedStyle(_:)),
+                                      keyEquivalent: "")
+                item.representedObject = name
+                item.target = self
+                deleteMenu.addItem(item)
+            }
+            deleteItem.submenu = deleteMenu
+            menu.addItem(deleteItem)
+        }
+    }
+
+    @objc func applyNamedStyle(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String,
+              let style = NoteStyle.namedStyles()[name] else { return }
+        post(.applyStyle(style))
+    }
+
+    @objc func saveNamedStyle() {
+        // Snapshot before the alert steals key status from the sticky.
+        guard let note = keyNote() else { return }
+        let snapshot = NoteStyle(of: note)
+
+        let alert = NSAlert()
+        alert.messageText = "Save Current Style"
+        alert.informativeText = "Names this note's look — color, glass, corners, font, everything. Reuse a name to overwrite it."
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
+        field.placeholderString = "Style name"
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let name = field.stringValue.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        var styles = NoteStyle.namedStyles()
+        styles[name] = snapshot
+        NoteStyle.saveNamedStyles(styles)
+    }
+
+    @objc func deleteNamedStyle(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String else { return }
+        var styles = NoteStyle.namedStyles()
+        styles.removeValue(forKey: name)
+        NoteStyle.saveNamedStyles(styles)
+    }
 
     @objc func setFont(_ sender: NSMenuItem) {
         post(.setFont(sender.representedObject as? String ?? "rounded"))
@@ -580,6 +655,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                                           keyEquivalent: "")
         applyDefaultItem.target = self
         noteMenu.addItem(applyDefaultItem)
+        let stylesItem = NSMenuItem(title: "Styles", action: nil, keyEquivalent: "")
+        let stylesMenu = NSMenu(title: "Styles")
+        stylesMenu.delegate = self   // rebuilt on every open (menuNeedsUpdate)
+        stylesItem.submenu = stylesMenu
+        noteMenu.addItem(stylesItem)
         noteItem.submenu = noteMenu
 
         let formatItem = NSMenuItem()

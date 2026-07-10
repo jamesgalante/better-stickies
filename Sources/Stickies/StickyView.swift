@@ -154,15 +154,21 @@ struct StickyContent: View {
         case .useAsDefaultStyle:
             NoteStyle(of: note).save()
         case .applyDefaultStyle:
-            NoteStyle.saved().apply(to: &note)
-            // Fit state changed under the window's feet — apply its
-            // consequences (unless collapsed; expanding re-fits anyway).
-            if !note.collapsed {
-                if note.fitToText {
-                    applyFit()
-                } else {
-                    windowContext.clearFit()
-                }
+            applyStyle(NoteStyle.saved())
+        case .applyStyle(let style):
+            applyStyle(style)
+        }
+    }
+
+    private func applyStyle(_ style: NoteStyle) {
+        style.apply(to: &note)
+        // Fit state changed under the window's feet — apply its
+        // consequences (unless collapsed; expanding re-fits anyway).
+        if !note.collapsed {
+            if note.fitToText {
+                applyFit()
+            } else {
+                windowContext.clearFit()
             }
         }
     }

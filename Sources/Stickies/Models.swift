@@ -321,6 +321,22 @@ struct NoteStyle: Codable {
         guard let data = try? JSONEncoder().encode(self) else { return }
         UserDefaults.standard.set(data, forKey: Self.defaultsKey)
     }
+
+    // MARK: Named presets (Note ▸ Styles)
+
+    private static let namedKey = "namedStyles"
+
+    static func namedStyles() -> [String: NoteStyle] {
+        guard let data = UserDefaults.standard.data(forKey: namedKey),
+              let styles = try? JSONDecoder().decode([String: NoteStyle].self, from: data)
+        else { return [:] }
+        return styles
+    }
+
+    static func saveNamedStyles(_ styles: [String: NoteStyle]) {
+        guard let data = try? JSONEncoder().encode(styles) else { return }
+        UserDefaults.standard.set(data, forKey: namedKey)
+    }
 }
 
 // MARK: - Note
