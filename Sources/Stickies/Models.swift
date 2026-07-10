@@ -256,6 +256,73 @@ enum LinkOpener {
     }
 }
 
+// MARK: - New-note style defaults
+
+/// The style a new note is born with. Snapshot any note into the defaults
+/// via Note ▸ "Use as Default for New Notes" — content, pinned state, and
+/// window geometry are deliberately not part of the snapshot.
+struct NoteStyle: Codable {
+    var tintHex = "FFFFFF"
+    var tintStrength = 0.35
+    var edgeHex: String? = nil
+    var fontKey = "rounded"
+    var textSize = 13.0
+    var cornerRadius = 16.0
+    var saturation = 1.6
+    var wrapText = true
+    var textAlignment = "left"
+    var lineSpacing = "normal"
+    var textPadding = "normal"
+    var fitToText = false
+
+    init() {}
+
+    init(of note: Note) {
+        tintHex = note.tintHex
+        tintStrength = note.tintStrength
+        edgeHex = note.edgeHex
+        fontKey = note.fontKey
+        textSize = note.textSize
+        cornerRadius = note.cornerRadius
+        saturation = note.saturation
+        wrapText = note.wrapText
+        textAlignment = note.textAlignment
+        lineSpacing = note.lineSpacing
+        textPadding = note.textPadding
+        fitToText = note.fitToText
+    }
+
+    func apply(to note: inout Note) {
+        note.tintHex = tintHex
+        note.tintStrength = tintStrength
+        note.edgeHex = edgeHex
+        note.fontKey = fontKey
+        note.textSize = textSize
+        note.cornerRadius = cornerRadius
+        note.saturation = saturation
+        note.wrapText = wrapText
+        note.textAlignment = textAlignment
+        note.lineSpacing = lineSpacing
+        note.textPadding = textPadding
+        note.fitToText = fitToText
+    }
+
+    private static let defaultsKey = "newNoteStyle"
+
+    static func saved() -> NoteStyle {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
+              let style = try? JSONDecoder().decode(NoteStyle.self, from: data) else {
+            return NoteStyle()
+        }
+        return style
+    }
+
+    func save() {
+        guard let data = try? JSONEncoder().encode(self) else { return }
+        UserDefaults.standard.set(data, forKey: Self.defaultsKey)
+    }
+}
+
 // MARK: - Note
 
 struct Note: Identifiable, Codable, Equatable {
@@ -514,7 +581,8 @@ final class NotesStore: ObservableObject {
 
     @discardableResult
     func addNote() -> Note {
-        let note = Note()
+        var note = Note()
+        NoteStyle.saved().apply(to: &note)
         notes.append(note)
         return note
     }

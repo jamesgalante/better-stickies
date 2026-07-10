@@ -151,6 +151,8 @@ struct StickyContent: View {
             windowContext.setPinned(note.pinned)
         case .saveCopy:
             saveCopy()
+        case .useAsDefaultStyle:
+            NoteStyle(of: note).save()
         }
     }
 
