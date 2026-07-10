@@ -263,18 +263,40 @@ final class WindowContext: ObservableObject {
     /// (top edge fixed, growing downward). Width stays free — min/max
     /// clamp only the vertical axis, so edge-drags resize width and the
     /// reflowed height re-pins live.
+    ///
+    /// Reentrancy-gated AND never pinned while moving. Two hard-won rules:
+    /// - setFrame posts didResizeNotification synchronously and the fit
+    ///   logic listens to it — the gate stops self-recursion.
+    /// - The glass view pins its contentView with Auto Layout, making the
+    ///   window constraint-driven; holding contentMin==contentMax at the
+    ///   target while calling setFrame makes the constraint engine and the
+    ///   size limits fight *inside* the call and never return. So: unpin,
+    ///   move, and re-pin at whatever height actually settled, a runloop
+    ///   later.
+    private var fitting = false
+
     func setFitHeight(_ height: CGFloat) {
-        guard let window else { return }
+        guard let window, !fitting else { return }
+        fitting = true
+
         let cap = window.screen?.visibleFrame.height ?? 1000
         let clamped = min(max(height, 60), cap)
         let unbounded = CGFloat.greatestFiniteMagnitude
-        window.contentMinSize = NSSize(width: 150, height: clamped)
-        window.contentMaxSize = NSSize(width: unbounded, height: clamped)
+        window.contentMinSize = NSSize(width: 150, height: 60)
+        window.contentMaxSize = NSSize(width: unbounded, height: unbounded)
         var frame = window.frame
-        guard abs(frame.height - clamped) > 0.5 else { return }
-        frame.origin.y += frame.height - clamped
-        frame.size.height = clamped
-        window.setFrame(frame, display: true)
+        if abs(frame.height - clamped) > 0.5 {
+            frame.origin.y += frame.height - clamped
+            frame.size.height = clamped
+            window.setFrame(frame, display: true)
+        }
+        DispatchQueue.main.async { [weak self] in
+            defer { self?.fitting = false }
+            guard let window = self?.window else { return }
+            let settled = window.frame.height
+            window.contentMinSize = NSSize(width: 150, height: settled)
+            window.contentMaxSize = NSSize(width: unbounded, height: settled)
+        }
     }
 
     /// Back to free-form sizing.

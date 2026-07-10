@@ -165,6 +165,13 @@ struct StickyContent: View {
     /// 30pt top + 6pt bottom padding).
     private func applyFit() {
         guard note.fitToText, !note.collapsed else { return }
+        guard editor.textView != nil else {
+            // A newborn window can fit before the editor exists (the
+            // contentHeight fallback would pin a wrong height and nothing
+            // would correct it) — retry once the view tree settles.
+            DispatchQueue.main.async { applyFit() }
+            return
+        }
         windowContext.setFitHeight(editor.contentHeight + 36)
     }
 

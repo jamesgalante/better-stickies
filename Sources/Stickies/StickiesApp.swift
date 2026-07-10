@@ -96,6 +96,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
 
         NSApp.activate(ignoringOtherApps: true)
+
+        // Debug hook: BS_AUTO_NEW=1 presses ⌘N for us shortly after launch.
+        if ProcessInfo.processInfo.environment["BS_AUTO_NEW"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.newSticky()
+            }
+        }
     }
 
     private func toggleSummon() {
