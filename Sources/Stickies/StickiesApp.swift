@@ -30,6 +30,7 @@ enum StickyCommand {
     case togglePin
     case saveCopy
     case useAsDefaultStyle
+    case applyDefaultStyle
 }
 
 // Plain AppKit lifecycle instead of SwiftUI's WindowGroup: SwiftUI insists on
@@ -234,6 +235,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func toggleWrap() { post(.toggleWrap) }
     @objc func toggleFit() { post(.toggleFit) }
     @objc func useAsDefaultStyle() { post(.useAsDefaultStyle) }
+    @objc func applyDefaultStyle() { post(.applyDefaultStyle) }
 
     @objc func setFont(_ sender: NSMenuItem) {
         post(.setFont(sender.representedObject as? String ?? "rounded"))
@@ -573,6 +575,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                                           keyEquivalent: "")
         defaultStyleItem.target = self
         noteMenu.addItem(defaultStyleItem)
+        let applyDefaultItem = NSMenuItem(title: "Apply Default Style",
+                                          action: #selector(applyDefaultStyle),
+                                          keyEquivalent: "")
+        applyDefaultItem.target = self
+        noteMenu.addItem(applyDefaultItem)
         noteItem.submenu = noteMenu
 
         let formatItem = NSMenuItem()
