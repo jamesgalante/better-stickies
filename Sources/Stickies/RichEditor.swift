@@ -84,6 +84,7 @@ final class EditorController: ObservableObject {
     func insertDroppedWebURL(_ url: URL) { textView?.insertWebLinkAtEnd(url) }
     func insertDroppedText(_ text: String) { textView?.insertPlainTextAtEnd(text) }
     func insertDroppedImage(_ url: URL) { textView?.insertImageAtEnd(copyOf: url) }
+    func insertStoredImage(filename: String) { textView?.insertImageAtEnd(filename: filename) }
     func toggleInline(_ style: InlineStyle) { textView?.toggleInline(style) }
     func applyTextColor(_ hex: String?) { textView?.applyRunValue(hex, for: .stickyColor) }
     func applyHighlight(_ hex: String?) { textView?.applyRunValue(hex, for: .stickyHighlight) }
@@ -436,6 +437,11 @@ final class StickyTextView: NSTextView {
     func insertImageAtEnd(copyOf url: URL) {
         moveCaretToEnd(newLineIfNeeded: true)
         insertImage(copyOf: url)
+    }
+
+    func insertImageAtEnd(filename: String) {
+        moveCaretToEnd(newLineIfNeeded: true)
+        insertImage(filename: filename)
     }
 
     private func insertImage(filename: String) {

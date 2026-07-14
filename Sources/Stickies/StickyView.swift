@@ -56,7 +56,7 @@ struct StickyContent: View {
         .clipShape(RoundedRectangle(cornerRadius: appearance.cornerRadius, style: .continuous))
         .overlay(edgeBorder)
         .environment(\.colorScheme, appearance.isDark ? .dark : .light)
-        .onDrop(of: [.fileURL, .url, .plainText], isTargeted: $dropTargeted, perform: handleDrop)
+        .onDrop(of: [.image, .fileURL, .url, .plainText], isTargeted: $dropTargeted, perform: handleDrop)
         .onAppear {
             if note.collapsed {
                 windowContext.setCollapsed(true, height: collapsedHeight)
@@ -294,7 +294,18 @@ struct StickyContent: View {
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
         var handled = false
         for provider in providers {
-            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            // Image-shaped drops first: screenshot-thumbnail drags arrive as
+            // file PROMISES (no real fileURL yet), browser/Photos drags as
+            // raw data — loadFileRepresentation materializes all of them.
+            // The temp file dies when the handler returns, so copy it into
+            // the image store before hopping to the main thread.
+            if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                handled = true
+                provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, _ in
+                    guard let url, let filename = NoteImages.store(copyOf: url) else { return }
+                    DispatchQueue.main.async { editor.insertStoredImage(filename: filename) }
+                }
+            } else if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                 handled = true
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
                     guard let url = Self.url(from: item) else { return }
