@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import os
 
 extension Notification.Name {
     static let stickyToggleChecklist = Notification.Name("BetterStickies.toggleChecklist")
@@ -291,7 +292,13 @@ struct StickyContent: View {
 
     // MARK: Drag & drop
 
+    private static let dropLog = Logger(subsystem: "com.jamesgalante.better-stickies",
+                                        category: "drop")
+
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        for (index, provider) in providers.enumerated() {
+            Self.dropLog.log("provider \(index, privacy: .public): \(provider.registeredTypeIdentifiers.joined(separator: ", "), privacy: .public)")
+        }
         var handled = false
         for provider in providers {
             // Image-shaped drops first: screenshot-thumbnail drags arrive as
@@ -301,7 +308,8 @@ struct StickyContent: View {
             // the image store before hopping to the main thread.
             if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
                 handled = true
-                provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, _ in
+                provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, error in
+                    Self.dropLog.log("image rep: url=\(url?.path ?? "nil", privacy: .public) error=\(String(describing: error), privacy: .public)")
                     guard let url, let filename = NoteImages.store(copyOf: url) else { return }
                     DispatchQueue.main.async { editor.insertStoredImage(filename: filename) }
                 }

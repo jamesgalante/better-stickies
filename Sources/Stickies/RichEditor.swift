@@ -463,6 +463,58 @@ final class StickyTextView: NSTextView {
         onContentChange?()
     }
 
+    /// NSTextView is itself a drag destination and consumes drops before
+    /// SwiftUI's onDrop ever sees them — its default for file drags is
+    /// inserting the PATH as text. Intercept image-shaped drops here:
+    /// file promises (the screenshot floating thumbnail, Photos), plain
+    /// image files, and raw image data. Everything else (text drags,
+    /// non-image files) keeps the native behavior via super.
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let pasteboard = sender.draggingPasteboard
+        let point = convert(sender.draggingLocation, from: nil)
+        let dropIndex = characterIndexForInsertion(at: point)
+
+        if let receivers = pasteboard.readObjects(forClasses: [NSFilePromiseReceiver.self])
+            as? [NSFilePromiseReceiver], !receivers.isEmpty {
+            let tempDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try? FileManager.default.createDirectory(at: tempDir,
+                                                     withIntermediateDirectories: true)
+            for receiver in receivers {
+                receiver.receivePromisedFiles(atDestination: tempDir, options: [:],
+                                              operationQueue: .main) { [weak self] url, error in
+                    guard error == nil, let self,
+                          UTType(filenameExtension: url.pathExtension)?
+                              .conforms(to: .image) == true,
+                          let filename = NoteImages.store(copyOf: url) else { return }
+                    let length = (self.string as NSString).length
+                    self.setSelectedRange(NSRange(location: min(dropIndex, length), length: 0))
+                    self.insertImage(filename: filename)
+                }
+            }
+            return true
+        }
+
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self],
+                                             options: [.urlReadingFileURLsOnly: true]) as? [URL],
+           !urls.isEmpty, urls.allSatisfy(isImageFile) {
+            setSelectedRange(NSRange(location: dropIndex, length: 0))
+            for url in urls { insertImage(copyOf: url) }
+            return true
+        }
+
+        if pasteboard.availableType(from: [.tiff, .png]) != nil,
+           let image = NSImage(pasteboard: pasteboard),
+           let png = Self.pngData(from: image),
+           let filename = NoteImages.store(pngData: png) {
+            setSelectedRange(NSRange(location: dropIndex, length: 0))
+            insertImage(filename: filename)
+            return true
+        }
+
+        return super.performDragOperation(sender)
+    }
+
     /// Trackpad pinch over an image scales it; commits (debounced) so the
     /// width persists.
     override func magnify(with event: NSEvent) {
@@ -928,6 +980,13 @@ struct RichEditor: NSViewRepresentable {
         textView.isHorizontallyResizable = false
         textView.textContainer?.widthTracksTextView = true
         textView.delegate = context.coordinator
+
+        // Accept file-promise drags (screenshot thumbnails) on top of the
+        // text view's own registrations — additive, not replacing.
+        let promiseTypes = NSFilePromiseReceiver.readableDraggedTypes
+            .map { NSPasteboard.PasteboardType($0) }
+        textView.registerForDraggedTypes(
+            textView.registeredDraggedTypes + promiseTypes + [.png, .tiff])
 
         textView.style = style
         textView.onContentChange = { [weak textView] in
