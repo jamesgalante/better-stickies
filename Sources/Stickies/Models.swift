@@ -202,28 +202,100 @@ struct Span: Codable, Equatable {
     }
 }
 
-/// One paragraph. `todo` lines render with a leading checkbox.
+/// One paragraph. `todo` lines render with a leading checkbox; a line with
+/// `image` set renders that image (a file in the store's images directory)
+/// as a block, scaled to `imageWidth` points.
 struct Line: Codable, Equatable {
     var todo: Bool = false
     var done: Bool = false
+    var image: String? = nil
+    var imageWidth: Double? = nil
     var spans: [Span] = [Span(text: "")]
 
     var plainText: String { spans.map(\.text).joined() }
 
-    init(todo: Bool = false, done: Bool = false, spans: [Span] = [Span(text: "")]) {
+    init(todo: Bool = false, done: Bool = false,
+         image: String? = nil, imageWidth: Double? = nil,
+         spans: [Span] = [Span(text: "")]) {
         self.todo = todo
         self.done = done
+        self.image = image
+        self.imageWidth = imageWidth
         self.spans = spans
     }
 }
 
 extension Line {
+    private enum CodingKeys: String, CodingKey {
+        case todo, done, image, imageWidth, spans
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         todo = try c.decodeIfPresent(Bool.self, forKey: .todo) ?? false
         done = try c.decodeIfPresent(Bool.self, forKey: .done) ?? false
+        image = try c.decodeIfPresent(String.self, forKey: .image)
+        imageWidth = try c.decodeIfPresent(Double.self, forKey: .imageWidth)
         spans = try c.decodeIfPresent([Span].self, forKey: .spans) ?? [Span(text: "")]
         if spans.isEmpty { spans = [Span(text: "")] }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        if todo { try c.encode(true, forKey: .todo) }
+        if done { try c.encode(true, forKey: .done) }
+        try c.encodeIfPresent(image, forKey: .image)
+        try c.encodeIfPresent(imageWidth, forKey: .imageWidth)
+        try c.encode(spans, forKey: .spans)
+    }
+}
+
+// MARK: - Image storage — real files, referenced by filename in the JSON
+
+/// Note images live as files next to notes.json so the JSON stays light and
+/// external agents can add images too (drop a file in, reference it).
+enum NoteImages {
+    static var directory: URL {
+        let dir = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("BetterStickies/images", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    static func url(for filename: String) -> URL {
+        directory.appendingPathComponent(filename)
+    }
+
+    /// Stores PNG data under a fresh name; returns the filename.
+    static func store(pngData: Data) -> String? {
+        let filename = UUID().uuidString + ".png"
+        do {
+            try pngData.write(to: url(for: filename), options: .atomic)
+            return filename
+        } catch {
+            return nil
+        }
+    }
+
+    /// Copies an existing image file in (keeping its extension).
+    static func store(copyOf source: URL) -> String? {
+        let filename = UUID().uuidString + "." + (source.pathExtension.isEmpty
+                                                  ? "png" : source.pathExtension)
+        do {
+            try FileManager.default.copyItem(at: source, to: url(for: filename))
+            return filename
+        } catch {
+            return nil
+        }
+    }
+
+    /// Deletes stored images no note references anymore (called at launch).
+    static func collectGarbage(keeping referenced: Set<String>) {
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for file in files where !referenced.contains(file) {
+            try? FileManager.default.removeItem(at: url(for: file))
+        }
     }
 }
 
@@ -394,6 +466,10 @@ struct Note: Identifiable, Codable, Equatable {
     var markdown: String {
         var out: [String] = []
         for line in lines {
+            if let image = line.image {
+                out.append("![image](\(NoteImages.url(for: image).path))")
+                continue
+            }
             var text = ""
             for span in line.spans {
                 var t = span.text
@@ -588,6 +664,10 @@ final class NotesStore: ObservableObject {
         }
         lastSyncedNotes = Dictionary(uniqueKeysWithValues: notes.map { ($0.id, $0) })
         startWatching()
+
+        // Sweep stored images that no note references anymore.
+        let referenced = Set(notes.flatMap { $0.lines.compactMap(\.image) })
+        NoteImages.collectGarbage(keeping: referenced)
     }
 
     deinit {

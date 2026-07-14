@@ -53,6 +53,8 @@ a note is just a close dot, a pin, and your text.
   `*italic*` convert as you type. Nothing auto-continues; you stay in control.
 - **Checklists & links** — clickable checkboxes; link selections to websites, files,
   or folders; drag & drop URLs and files straight onto a note.
+- **Images** — paste or drag pictures in; pinch to scale, or right-click for size
+  presets. Stored as real files next to your notes, not blobs in the JSON.
 - **Shape & layout** — corner radius presets (Sharp to Pill), padding, alignment,
   and line spacing per note; wrap text or scroll it horizontally; fit-to-text
   height that grows and shrinks as you type.

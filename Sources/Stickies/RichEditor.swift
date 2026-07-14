@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - Custom attributes
 
@@ -37,6 +38,36 @@ final class CheckboxAttachment: NSTextAttachment {
     var done = false
 }
 
+/// A block image in the note: one attachment character on its own line,
+/// backed by a file in NoteImages.directory. `displayWidth` (points) is the
+/// user's chosen scale; height follows the image's aspect ratio.
+final class ImageAttachment: NSTextAttachment {
+    let filename: String
+    let naturalSize: NSSize
+    var displayWidth: CGFloat {
+        didSet { updateBounds() }
+    }
+
+    init?(filename: String, displayWidth: CGFloat?) {
+        guard let image = NSImage(contentsOf: NoteImages.url(for: filename)),
+              image.size.width > 0 else { return nil }
+        self.filename = filename
+        self.naturalSize = image.size
+        self.displayWidth = displayWidth ?? min(image.size.width, 240)
+        super.init(data: nil, ofType: nil)
+        self.image = image
+        updateBounds()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    private func updateBounds() {
+        let width = max(displayWidth, 40)
+        let height = width * naturalSize.height / naturalSize.width
+        bounds = CGRect(x: 0, y: 0, width: width, height: height)
+    }
+}
+
 // MARK: - Controller: the surface the rest of the app talks to
 
 final class EditorController: ObservableObject {
@@ -52,6 +83,7 @@ final class EditorController: ObservableObject {
     func insertDroppedURL(_ url: URL) { textView?.insertPathLinkAtEnd(url) }
     func insertDroppedWebURL(_ url: URL) { textView?.insertWebLinkAtEnd(url) }
     func insertDroppedText(_ text: String) { textView?.insertPlainTextAtEnd(text) }
+    func insertDroppedImage(_ url: URL) { textView?.insertImageAtEnd(copyOf: url) }
     func toggleInline(_ style: InlineStyle) { textView?.toggleInline(style) }
     func applyTextColor(_ hex: String?) { textView?.applyRunValue(hex, for: .stickyColor) }
     func applyHighlight(_ hex: String?) { textView?.applyRunValue(hex, for: .stickyHighlight) }
@@ -126,6 +158,18 @@ final class StickyTextView: NSTextView {
     func load(lines: [Line]) {
         let content = NSMutableAttributedString()
         for (index, line) in lines.enumerated() {
+            if let filename = line.image {
+                if let attachment = ImageAttachment(filename: filename,
+                                                    displayWidth: line.imageWidth.map { CGFloat($0) }) {
+                    content.append(NSAttributedString(attachment: attachment))
+                } else {
+                    content.append(NSAttributedString(string: "⚠︎ missing image"))
+                }
+                if index < lines.count - 1 {
+                    content.append(NSAttributedString(string: "\n"))
+                }
+                continue
+            }
             if line.todo {
                 content.append(checkboxString(done: line.done))
             }
@@ -175,6 +219,24 @@ final class StickyTextView: NSTextView {
 
             var line = Line(spans: [])
             var spanStart = contentRange.location
+
+            if contentRange.length > 0,
+               let attachment = storage.attribute(.attachment, at: contentRange.location,
+                                                  effectiveRange: nil) as? ImageAttachment {
+                line.image = attachment.filename
+                line.imageWidth = Double(attachment.displayWidth)
+                line.spans = [Span(text: "")]
+                lines.append(line)
+                if paragraphRange.upperBound == location { break }
+                location = paragraphRange.upperBound
+                if location >= text.length {
+                    if text.length > 0 && text.character(at: text.length - 1) == 10 {
+                        lines.append(Line())
+                    }
+                    break
+                }
+                continue
+            }
 
             if contentRange.length > 0,
                let attachment = storage.attribute(.attachment, at: contentRange.location,
@@ -330,6 +392,149 @@ final class StickyTextView: NSTextView {
         ]
         linkTextAttributes = [:]   // we style links ourselves
         layoutManager?.invalidateDisplay(forCharacterRange: full)
+    }
+
+    // MARK: Images — paste, drop, pinch-to-scale, right-click sizes
+
+    /// Pasting an image (file copy or raw data) inserts it as a block line;
+    /// anything else pastes normally.
+    override func paste(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+        let urls = (pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL]) ?? []
+
+        if !urls.isEmpty, urls.allSatisfy(isImageFile) {
+            // Copied image files (Finder): bring the originals in.
+            for url in urls { insertImage(copyOf: url) }
+            return
+        }
+        if urls.isEmpty,
+           let image = NSImage(pasteboard: pasteboard),
+           let png = Self.pngData(from: image),
+           let filename = NoteImages.store(pngData: png) {
+            // Raw image data (screenshots, browser copies).
+            insertImage(filename: filename)
+            return
+        }
+        super.paste(sender)
+    }
+
+    private func isImageFile(_ url: URL) -> Bool {
+        UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true
+    }
+
+    private static func pngData(from image: NSImage) -> Data? {
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .png, properties: [:])
+    }
+
+    func insertImage(copyOf url: URL) {
+        guard let filename = NoteImages.store(copyOf: url) else { return }
+        insertImage(filename: filename)
+    }
+
+    func insertImageAtEnd(copyOf url: URL) {
+        moveCaretToEnd(newLineIfNeeded: true)
+        insertImage(copyOf: url)
+    }
+
+    private func insertImage(filename: String) {
+        let available = max(120, (enclosingScrollView?.contentSize.width ?? 300) - 32)
+        guard let attachment = ImageAttachment(filename: filename, displayWidth: nil) else { return }
+        attachment.displayWidth = min(attachment.naturalSize.width, available)
+
+        let text = string as NSString
+        let selection = selectedRange()
+        let insertion = NSMutableAttributedString()
+        if selection.location > 0, text.length > 0,
+           text.character(at: min(selection.location, text.length) - 1) != 10 {
+            insertion.append(NSAttributedString(string: "\n"))
+        }
+        insertion.append(NSAttributedString(attachment: attachment))
+        insertion.append(NSAttributedString(string: "\n"))
+        insertText(insertion, replacementRange: selection)
+        restyle()
+        onContentChange?()
+    }
+
+    /// Trackpad pinch over an image scales it; commits (debounced) so the
+    /// width persists.
+    override func magnify(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        guard let (attachment, range) = imageAttachment(at: point) else {
+            super.magnify(with: event)
+            return
+        }
+        let ceiling = min(max(textContainer?.size.width ?? bounds.width, 120),
+                          attachment.naturalSize.width * 4)
+        let scaled = attachment.displayWidth * (1 + event.magnification)
+        attachment.displayWidth = min(max(scaled, 40), ceiling)
+        layoutManager?.invalidateLayout(forCharacterRange: range, actualCharacterRange: nil)
+        layoutManager?.invalidateDisplay(forCharacterRange: range)
+
+        imageCommit?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.onContentChange?() }
+        imageCommit = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+    }
+
+    private var imageCommit: DispatchWorkItem?
+
+    /// Right-click on an image: size presets (for the mouse-bound).
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let point = convert(event.locationInWindow, from: nil)
+        guard let (attachment, range) = imageAttachment(at: point) else {
+            return super.menu(for: event)
+        }
+        let container = max(textContainer?.size.width ?? bounds.width, 120)
+        let menu = NSMenu()
+        let options: [(String, CGFloat)] = [
+            ("Small", 120),
+            ("Medium", 240),
+            ("Large", 420),
+            ("Fit Width", container - 8),
+            ("Actual Size", attachment.naturalSize.width),
+        ]
+        for (title, width) in options {
+            let item = NSMenuItem(title: title, action: #selector(resizeImage(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = [range.location, Double(width)]
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    @objc private func resizeImage(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [Any],
+              let location = info.first as? Int,
+              let width = info.last as? Double,
+              let storage = textStorage, location < storage.length,
+              let attachment = storage.attribute(.attachment, at: location,
+                                                 effectiveRange: nil) as? ImageAttachment
+        else { return }
+        attachment.displayWidth = max(40, CGFloat(width))
+        let range = NSRange(location: location, length: 1)
+        layoutManager?.invalidateLayout(forCharacterRange: range, actualCharacterRange: nil)
+        layoutManager?.invalidateDisplay(forCharacterRange: range)
+        onContentChange?()
+    }
+
+    private func imageAttachment(at point: NSPoint) -> (ImageAttachment, NSRange)? {
+        guard let layoutManager, let textContainer, let storage = textStorage,
+              storage.length > 0 else { return nil }
+        let origin = textContainerOrigin
+        let adjusted = NSPoint(x: point.x - origin.x, y: point.y - origin.y)
+        let glyphIndex = layoutManager.glyphIndex(for: adjusted, in: textContainer)
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+        guard charIndex < storage.length,
+              let attachment = storage.attribute(.attachment, at: charIndex,
+                                                 effectiveRange: nil) as? ImageAttachment
+        else { return nil }
+        let rect = layoutManager.boundingRect(forGlyphRange: NSRange(location: glyphIndex, length: 1),
+                                              in: textContainer)
+        guard rect.insetBy(dx: -4, dy: -4).contains(adjusted) else { return nil }
+        return (attachment, NSRange(location: charIndex, length: 1))
     }
 
     // MARK: Wrap vs horizontal scroll

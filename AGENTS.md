@@ -69,6 +69,10 @@ files — absent means the default):
     {
       "todo": true,              // renders a checkbox
       "done": false,             // checked state (strikes the line)
+      "image": "ABC….png",       // block-image line: filename inside
+                                 //   …/BetterStickies/images/ (see below)
+      "imageWidth": 260,         // display width in points (height follows
+                                 //   the image's aspect ratio)
       "spans": [                 // runs of styled text within the line
         {
           "text": "call dad",    // the only required span field
@@ -89,6 +93,14 @@ files — absent means the default):
 
 Plain paragraphs omit `todo`/`done`. A bullet is literally the text `• ` at the
 start of a span. An empty line is `{"spans": [{"text": ""}]}`.
+
+**Images:** a line with `image` set renders that file as a block (its spans are
+ignored — write `[{"text": ""}]`). Image files live in
+`~/Library/Application Support/BetterStickies/images/`; to add one, copy your
+file there under a fresh unique name, then reference the filename. Files no
+note references are deleted at app launch, so never share an image between
+notes by hand-copying the same filename reference *after* deleting its last
+use, and don't park unrelated files in that directory.
 
 ## Recipes (Python)
 

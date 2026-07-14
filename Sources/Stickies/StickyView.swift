@@ -298,7 +298,15 @@ struct StickyContent: View {
                 handled = true
                 provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
                     guard let url = Self.url(from: item) else { return }
-                    DispatchQueue.main.async { editor.insertDroppedURL(url) }
+                    let isImage = UTType(filenameExtension: url.pathExtension)?
+                        .conforms(to: .image) == true
+                    DispatchQueue.main.async {
+                        if isImage {
+                            editor.insertDroppedImage(url)
+                        } else {
+                            editor.insertDroppedURL(url)
+                        }
+                    }
                 }
             } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
                 handled = true
